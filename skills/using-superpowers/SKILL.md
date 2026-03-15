@@ -455,6 +455,16 @@ Orchestrator flow: Check specialists → Brainstorm → Skills → Execute
 
 The skill itself tells you which.
 
+## UI Preview for Brainstorming
+
+**When any change involves UI (components, layouts, styling, pages, visual elements):**
+
+Always create a UI preview during brainstorming. Before implementing, generate a visual preview (mockup, wireframe, or rendered prototype) so the user can see and approve the direction before code is written. This applies to new UI, UI modifications, and design-related changes.
+
+- **@designer** should produce a preview as part of their output
+- **Orchestrators** must include "produce UI preview" in the agent briefing when delegating UI work
+- **No UI code lands without a preview shown during brainstorming**
+
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
