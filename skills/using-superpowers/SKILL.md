@@ -398,44 +398,55 @@ Is overhead < time saved?
 ### Specialist Capabilities
 
 **@explorer** (Discovery):
+Skills: `monorepo-navigator`, `cartography`
 
-- Glob searches across codebase
-- Pattern matching and regex
-- File location discovery
-- Codebase structure mapping
-- Parallel searches
+- Codebase structure mapping and hierarchical codemap generation
+- Monorepo navigation across packages, cross-package dependencies, and module boundaries
+- Glob searches, pattern matching, parallel file location discovery
+- MCPs: outline, supermemory
 
 **@librarian** (Knowledge):
+Skills: `senior-architect`, `codebase-onboarding`
 
-- Fetch official documentation
-- API reference lookups
-- Version-specific behavior
-- Best practices and examples
-- Complex API navigation
+- System architecture design, ADRs, tech stack evaluation, dependency analysis, architecture diagrams
+- New developer onboarding, codebase walkthroughs, and knowledge transfer
+- Fetch official docs, API references, and version-specific behavior (via context7, grep_app, websearch)
+- State persistence to supermemory and outline on behalf of orchestrator
+- MCPs: websearch, context7, grep_app, outline, supermemory
 
 **@oracle** (Strategy):
+Skills: `receiving-code-review`, `requesting-code-review`, `systematic-debugging`, `writing-skills`, `database-designer`, `api-design-reviewer`, `pr-review-expert`, `tech-debt-tracker`, `migration-architect`
 
-- Architecture decisions
-- System design reviews
-- Complex debugging
-- Trade-off analysis
-- High-stakes guidance
+- Systematic debugging and root-cause analysis before proposing fixes
+- Code review — both giving (PR review) and receiving (verify before implementing suggestions)
+- Database schema design, normalization, and indexing strategies
+- REST/GraphQL API design review and consistency checks
+- Tech debt scanning, severity scoring, trend tracking, and prioritized remediation plans
+- Migration planning and execution (database, framework, infrastructure)
+- Skill authoring and maintenance for the agent ecosystem
+- MCPs: none (pure reasoning)
 
 **@designer** (Polish):
+Skills: `agent-browser`, `ui-design-system`, `ux-researcher-designer`, `landing-page-generator`
 
-- UI/UX implementation
-- Visual consistency
-- Responsive layouts
-- Animation and interaction
-- Aesthetic improvement
+- Design token generation, component documentation, responsive design, and developer handoff
+- Data-driven personas, journey mapping, usability testing, and research synthesis
+- High-converting landing page generation (Next.js/React + Tailwind, SEO, Core Web Vitals)
+- Browser-based preview and visual validation of UI changes
+- MCPs: opencode-browser, outline, supermemory
 
 **@fixer** (Execution):
+Skills: `test-driven-development`, `verification-before-completion`, `simplify`, `executing-plans`, `finishing-a-development-branch`, `using-git-worktrees`, `senior-backend`, `senior-frontend`, `senior-fullstack`, `ci-cd-pipeline-builder`, `api-test-suite-builder`
 
-- Parallel task execution
-- Well-specified implementations
-- Testing and verification
-- Rapid prototyping
-- Multi-location changes
+- Parallel task execution and well-specified implementations
+- Test-driven development — write tests before implementation code
+- Verification before completion — run commands and confirm output before claiming done
+- Plan execution in separate sessions with review checkpoints
+- Git worktree management for isolated feature work
+- Full-stack implementation: backend (Node.js/Express/Fastify/PostgreSQL), frontend (React/Next.js/Tailwind), fullstack scaffolding (Next.js, FastAPI, MERN, Django)
+- CI/CD pipeline building and API test suite generation
+- Code simplification and branch finishing (merge, PR, or cleanup)
+- MCPs: outline, supermemory
 
 ## Skill Priority
 
