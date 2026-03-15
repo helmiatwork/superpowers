@@ -461,8 +461,9 @@ The skill itself tells you which.
 
 Always create a UI preview during brainstorming. Before implementing, generate a visual preview (mockup, wireframe, or rendered prototype) so the user can see and approve the direction before code is written. This applies to new UI, UI modifications, and design-related changes.
 
-- **@designer** should produce a preview as part of their output
-- **Orchestrators** must include "produce UI preview" in the agent briefing when delegating UI work
+- **@designer** should produce a preview as part of their output when handling UI/UX tasks
+- **@fixer** should produce a preview when implementing well-specified UI tasks (parallel implementation of components, layouts, styling changes)
+- **Orchestrators** must include "produce UI preview" in the agent briefing when delegating UI work to either @designer or @fixer
 - **No UI code lands without a preview shown during brainstorming**
 
 ## User Instructions
