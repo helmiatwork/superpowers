@@ -30,7 +30,7 @@ Before taking ANY action, before analyzing ANY problem, before making ANY decisi
 
 **Pantheon Specialists:**
 
-> **All agents configuration lives in `~/.config/opencode/oh-my-opencode-slim.json`** — models, skills, MCPs, fallback chains, and presets for every specialist are defined there.
+> **All agents configuration lives in `~/.config/opencode/oh-my-opencode-slim.json`** — models, skills, MCPs, fallback chains, and presets for every specialist are defined there. When "ping all agents" is referenced, it refers to this config.
 > **Provider, plugin, and MCP settings live in `~/.config/opencode/opencode.json`** — API keys, provider endpoints, plugin configs, and MCP server definitions are defined there.
 
 - @explorer - Discover unknowns in codebase (parallel searches, pattern finding)
