@@ -177,12 +177,17 @@ Before every dispatch cycle, verify:
    - **Context tags:** Feature name, ticket/issue ID, relevant keywords for future retrieval
 
 2. **FEATURE COMPLETION FLOW** - When a feature or significant unit of work is **fully complete** (all tests pass, implementation done):
-   a. **CREATE PR** - Delegate to @fixer or handle directly:
+   a. **CREATE PR** - Delegate to @fixer:
       - Push branch to remote
       - Create PR via `gh pr create` with clear summary and test plan
       - Link to relevant issues/tickets if applicable
-   b. **UPDATE OUTLINE CHECKLIST** - Delegate to @librarian: find the relevant checklist/document in outline via MCP and mark the completed item(s) as done. If the feature is part of a larger project plan, update the progress accordingly.
-   c. **SAVE FINAL STATE TO SUPERMEMORY** - Delegate to @librarian: save completion state including the PR URL, what was delivered, and any follow-up items.
+   b. **REQUEST CODE REVIEW** - @fixer requests review from @oracle:
+      - @fixer uses `requesting-code-review` to submit the PR for review
+      - @oracle uses `receiving-code-review` to evaluate the PR
+      - If changes requested: @fixer addresses feedback, updates PR, re-requests review
+      - If approved: @oracle merges the PR
+   c. **UPDATE OUTLINE CHECKLIST** - Delegate to @librarian: find the relevant checklist/document in outline via MCP and mark the completed item(s) as done. If the feature is part of a larger project plan, update the progress accordingly.
+   d. **SAVE FINAL STATE TO SUPERMEMORY** - Delegate to @librarian: save completion state including the PR URL, what was delivered, and any follow-up items.
 
 3. **SAVE TO OUTLINE (if needed)** - If the work produced documentation, architectural decisions, plans, or knowledge worth persisting long-term, also save/update the relevant document in outline via MCP.
 
@@ -194,7 +199,13 @@ Save state to supermemory (@librarian)
   ↓
 Is this a completed feature?
   ├─ YES ↓
-  │   Create PR (@fixer or self)
+  │   Create PR (@fixer)
+  │     ↓
+  │   Request code review (@fixer → @oracle)
+  │     ↓
+  │   Review passed?
+  │     ├─ YES → @oracle merges PR
+  │     └─ NO → @fixer addresses feedback → re-request review
   │     ↓
   │   Update outline checklist (@librarian)
   │     ↓
@@ -274,7 +285,11 @@ digraph skill_flow {
     "Respond (including clarifications)" [shape=doublecircle];
     "Save state to Supermemory\n(delegate to @librarian)" [shape=box];
     "Is feature complete?" [shape=diamond];
-    "Create PR\n(@fixer or self)" [shape=box];
+    "Create PR\n(@fixer)" [shape=box];
+    "Request code review\n(@fixer → @oracle)" [shape=box];
+    "Review passed?" [shape=diamond];
+    "@oracle merges PR" [shape=box];
+    "@fixer addresses feedback" [shape=box];
     "Update Outline checklist\n(delegate to @librarian)" [shape=box];
     "Save final state + PR URL\nto Supermemory" [shape=box];
     "Done" [shape=doublecircle];
@@ -320,9 +335,14 @@ digraph skill_flow {
     // State persistence on completion
     "Respond (including clarifications)" -> "Save state to Supermemory\n(delegate to @librarian)";
     "Save state to Supermemory\n(delegate to @librarian)" -> "Is feature complete?";
-    "Is feature complete?" -> "Create PR\n(@fixer or self)" [label="yes"];
+    "Is feature complete?" -> "Create PR\n(@fixer)" [label="yes"];
     "Is feature complete?" -> "Done" [label="no"];
-    "Create PR\n(@fixer or self)" -> "Update Outline checklist\n(delegate to @librarian)";
+    "Create PR\n(@fixer)" -> "Request code review\n(@fixer → @oracle)";
+    "Request code review\n(@fixer → @oracle)" -> "Review passed?";
+    "Review passed?" -> "@oracle merges PR" [label="yes"];
+    "Review passed?" -> "@fixer addresses feedback" [label="no"];
+    "@fixer addresses feedback" -> "Request code review\n(@fixer → @oracle)";
+    "@oracle merges PR" -> "Update Outline checklist\n(delegate to @librarian)";
     "Update Outline checklist\n(delegate to @librarian)" -> "Save final state + PR URL\nto Supermemory";
     "Save final state + PR URL\nto Supermemory" -> "Done";
 }
@@ -415,7 +435,7 @@ Skills: `senior-architect`, `codebase-onboarding`
 - MCPs: websearch, context7, grep_app, outline, supermemory
 
 **@oracle** (Strategy):
-Skills: `receiving-code-review`, `requesting-code-review`, `systematic-debugging`, `writing-skills`, `database-designer`, `api-design-reviewer`, `pr-review-expert`, `tech-debt-tracker`, `migration-architect`
+Skills: `receiving-code-review`, `systematic-debugging`, `writing-skills`, `database-designer`, `api-design-reviewer`, `pr-review-expert`, `tech-debt-tracker`, `migration-architect`
 
 - Systematic debugging and root-cause analysis before proposing fixes
 - Code review — both giving (PR review) and receiving (verify before implementing suggestions)
@@ -436,7 +456,7 @@ Skills: `agent-browser`, `ui-design-system`, `ux-researcher-designer`, `landing-
 - MCPs: opencode-browser, outline, supermemory
 
 **@fixer** (Execution):
-Skills: `test-driven-development`, `verification-before-completion`, `simplify`, `executing-plans`, `finishing-a-development-branch`, `using-git-worktrees`, `senior-backend`, `senior-frontend`, `senior-fullstack`, `ci-cd-pipeline-builder`, `api-test-suite-builder`
+Skills: `test-driven-development`, `verification-before-completion`, `simplify`, `executing-plans`, `requesting-code-review`, `finishing-a-development-branch`, `using-git-worktrees`, `senior-backend`, `senior-frontend`, `senior-fullstack`, `ci-cd-pipeline-builder`, `api-test-suite-builder`
 
 - Parallel task execution and well-specified implementations
 - Test-driven development — write tests before implementation code
