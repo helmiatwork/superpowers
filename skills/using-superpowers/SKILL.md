@@ -30,6 +30,9 @@ Before taking ANY action, before analyzing ANY problem, before making ANY decisi
 
 **Pantheon Specialists:**
 
+> **All agents configuration lives in `~/.config/opencode/oh-my-opencode-slim.json`** — models, skills, MCPs, fallback chains, and presets for every specialist are defined there.
+> **Provider, plugin, and MCP settings live in `~/.config/opencode/opencode.json`** — API keys, provider endpoints, plugin configs, and MCP server definitions are defined there.
+
 - @explorer - Discover unknowns in codebase (parallel searches, pattern finding)
 - @librarian - Fetch current library docs, API references, official examples
 - @oracle - Strategic decisions, architecture, high-stakes problems, persistent issues
@@ -166,8 +169,38 @@ Before every dispatch cycle, verify:
 
 **Every time the orchestrator finishes a task or meaningful unit of work:**
 
-1. **SAVE TO SUPERMEMORY** - Delegate to @librarian: save the current session state to supermemory via MCP (what was done, current progress, key decisions, next steps).
-2. **SAVE TO OUTLINE (if needed)** - Delegate to @librarian: if the work produced documentation, architectural decisions, plans, or knowledge worth persisting long-term, also save/update the relevant document in outline via MCP.
+1. **SAVE TO SUPERMEMORY (MANDATORY)** - Delegate to @librarian: save the current session state to supermemory via MCP. This is **automatic and non-negotiable** — every completed task, no matter how small, gets persisted. Include:
+   - **What was done:** Summary of changes, files modified, decisions made
+   - **Current progress:** Where things stand (percentage, phase, status)
+   - **Key decisions:** Why certain approaches were chosen over alternatives
+   - **Next steps:** What remains to be done, blockers, dependencies
+   - **Context tags:** Feature name, ticket/issue ID, relevant keywords for future retrieval
+
+2. **FEATURE COMPLETION FLOW** - When a feature or significant unit of work is **fully complete** (all tests pass, implementation done):
+   a. **CREATE PR** - Delegate to @fixer or handle directly:
+      - Push branch to remote
+      - Create PR via `gh pr create` with clear summary and test plan
+      - Link to relevant issues/tickets if applicable
+   b. **UPDATE OUTLINE CHECKLIST** - Delegate to @librarian: find the relevant checklist/document in outline via MCP and mark the completed item(s) as done. If the feature is part of a larger project plan, update the progress accordingly.
+   c. **SAVE FINAL STATE TO SUPERMEMORY** - Delegate to @librarian: save completion state including the PR URL, what was delivered, and any follow-up items.
+
+3. **SAVE TO OUTLINE (if needed)** - If the work produced documentation, architectural decisions, plans, or knowledge worth persisting long-term, also save/update the relevant document in outline via MCP.
+
+**This is the completion sequence — it happens EVERY time:**
+```
+Task/feature completed
+  ↓
+Save state to supermemory (@librarian)
+  ↓
+Is this a completed feature?
+  ├─ YES ↓
+  │   Create PR (@fixer or self)
+  │     ↓
+  │   Update outline checklist (@librarian)
+  │     ↓
+  │   Save final state + PR URL to supermemory (@librarian)
+  └─ NO → Done
+```
 
 This ensures continuity across sessions. The next orchestrator can pick up exactly where you left off.
 
@@ -240,6 +273,10 @@ digraph skill_flow {
     // Completion
     "Respond (including clarifications)" [shape=doublecircle];
     "Save state to Supermemory\n(delegate to @librarian)" [shape=box];
+    "Is feature complete?" [shape=diamond];
+    "Create PR\n(@fixer or self)" [shape=box];
+    "Update Outline checklist\n(delegate to @librarian)" [shape=box];
+    "Save final state + PR URL\nto Supermemory" [shape=box];
     "Done" [shape=doublecircle];
 
     // Prompt Refinement Gate
@@ -282,7 +319,12 @@ digraph skill_flow {
 
     // State persistence on completion
     "Respond (including clarifications)" -> "Save state to Supermemory\n(delegate to @librarian)";
-    "Save state to Supermemory\n(delegate to @librarian)" -> "Done";
+    "Save state to Supermemory\n(delegate to @librarian)" -> "Is feature complete?";
+    "Is feature complete?" -> "Create PR\n(@fixer or self)" [label="yes"];
+    "Is feature complete?" -> "Done" [label="no"];
+    "Create PR\n(@fixer or self)" -> "Update Outline checklist\n(delegate to @librarian)";
+    "Update Outline checklist\n(delegate to @librarian)" -> "Save final state + PR URL\nto Supermemory";
+    "Save final state + PR URL\nto Supermemory" -> "Done";
 }
 ```
 
