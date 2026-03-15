@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# Pre-push hook: detect file changes and prompt codemap update via cartography
+#
+# This hook runs cartographer.py to check if tracked files have changed.
+# If changes are detected, it outputs a reminder context so the agent
+# knows to invoke the cartography skill to update affected codemaps.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+CARTOGRAPHER="${PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py"
+
+# Find the git repo root we're operating in
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
+
+if [ -z "$REPO_ROOT" ]; then
+    # Not in a git repo, skip
+    exit 0
+fi
+
+# Check if cartography state exists for this repo
+STATE_FILE="${REPO_ROOT}/.slim/cartography.json"
+if [ ! -f "$STATE_FILE" ]; then
+    # No cartography state initialized yet, skip
+    exit 0
+fi
+
+# Check if python3 is available
+if ! command -v python3 &>/dev/null; then
+    exit 0
+fi
+
+# Run cartographer changes and capture output
+CHANGES_OUTPUT=$(python3 "$CARTOGRAPHER" changes --root "$REPO_ROOT" 2>&1) || true
+
+if echo "$CHANGES_OUTPUT" | grep -q "No changes detected"; then
+    # No changes, nothing to do
+    exit 0
+fi
+
+# Changes detected - output context for the agent
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+changes_escaped=$(escape_for_json "$CHANGES_OUTPUT")
+context="<important-reminder>CODEMAP UPDATE NEEDED: The cartography system detected file changes in ${REPO_ROOT}. Before completing the push, you MUST invoke the 'cartography' skill to update affected codemaps.\n\nChanges detected:\n${changes_escaped}\n\nRun the cartography skill to update the affected codemap.md files, then run cartographer.py update to save the new state.</important-reminder>"
+
+cat <<EOF
+{
+  "additional_context": "${context}",
+  "hookSpecificOutput": {
+    "hookEventName": "PrePush",
+    "additionalContext": "${context}"
+  }
+}
+EOF
+
+exit 0
