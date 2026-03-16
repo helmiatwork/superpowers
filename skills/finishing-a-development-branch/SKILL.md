@@ -193,7 +193,7 @@ git worktree remove <worktree-path>
 **Never:**
 - Push directly to main/master — always use PRs
 - Branch from staging or other feature branches — feature branches always from main/master
-- Commit or push fixes to staging branches — all commits go on feature branches, push to feature branch, then re-merge into staging
+- Commit fixes to staging — staging only receives merges from feature branches (merge conflict resolutions are the only exception)
 - Create a PR with more than 20 files without splitting by context
 - Create commits mixing unrelated contexts
 - Proceed with failing tests

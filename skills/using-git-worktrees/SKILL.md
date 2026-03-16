@@ -200,7 +200,7 @@ Ready to implement auth feature
 
 **Never:**
 - Create feature branches from staging branches or other feature branches — always from main/master
-- Commit or push fixes to staging branches — all commits go on feature branches, push to feature branch, then re-merge into staging
+- Commit fixes to staging — staging only receives merges from feature branches (merge conflict resolutions are the only exception)
 - Create worktree without verifying it's ignored (project-local)
 - Skip baseline test verification
 - Proceed with failing tests without asking

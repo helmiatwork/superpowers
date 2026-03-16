@@ -302,12 +302,13 @@ These rules apply to ALL agents at ALL times:
 
 1. **Feature branches ALWAYS branch from main/master** — never from staging, other feature branches, or any non-base branch
 2. **Never push directly to main/master** — always create a PR and go through the review flow
-3. **Never commit to staging branches** — staging is merge-only. All commits go on feature branches, then get merged into staging for testing.
-4. **Never push to staging after fixing something** — fixes go on the feature branch, push to the feature branch, then re-merge into staging. The staging branch is only updated via merges, never via direct pushes of new work.
-5. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
-6. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
+3. **Staging only receives merges from feature branches** — no direct feature/fix commits on staging. All development happens on feature branches, then gets merged into staging for testing.
+4. **Exception: merge conflict resolution commits are allowed on staging** — when merging a feature branch into staging produces conflicts, the agent may resolve the conflict and commit the merge resolution directly on staging. This is the ONLY type of commit allowed on staging.
+5. **Never push fixes to staging** — if staging tests fail, switch to the feature branch, fix there, push the feature branch, then re-merge into staging. Never develop on staging.
+6. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
+7. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
 
-**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Never commit or push fixes to staging — always fix on feature branch, push feature branch, then re-merge into staging."
+**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Staging only receives merges from feature branches — the only commits allowed on staging are merge conflict resolutions. All fixes go on the feature branch first."
 
 ## ATOMIC COMMITS & PR STRATEGY — NON-NEGOTIABLE
 
