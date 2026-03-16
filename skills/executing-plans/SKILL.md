@@ -60,7 +60,9 @@ After all tasks complete and verified:
 - Don't skip verifications
 - Reference skills when plan says to
 - Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+- Never start implementation on main/master branch — always use a feature branch from main/master
+- Never push directly to main/master — always use PRs
+- Never branch from staging or other feature branches
 
 ## Integration
 

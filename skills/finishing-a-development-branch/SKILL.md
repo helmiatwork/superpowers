@@ -181,6 +181,8 @@ git worktree remove <worktree-path>
 ## Red Flags
 
 **Never:**
+- Push directly to main/master — always use PRs
+- Branch from staging or other feature branches — feature branches always from main/master
 - Proceed with failing tests
 - Merge without verifying tests on result
 - Delete work without confirmation

@@ -112,6 +112,7 @@ git commit -m "feat: add specific feature"
 - Reference relevant skills with @ syntax
 - **Reference TRDs** — if TRDs exist in Outline (API specs, migration plans, schemas), link them in the relevant tasks so @fixer executes from the TRD instead of making design decisions
 - DRY, YAGNI, TDD, frequent commits
+- **Branching:** Feature branches always from main/master — never from staging or other feature branches. Never push directly to main/master.
 
 ## Plan Review Loop
 
