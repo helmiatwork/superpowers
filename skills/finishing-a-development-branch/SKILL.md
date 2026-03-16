@@ -103,6 +103,8 @@ EOF
 )"
 ```
 
+**Multi-PR or multi-repo?** If this PR is part of a feature with multiple PRs or spanning multiple repos, use `staging-integration` skill after code review passes to merge all PRs to a staging branch for regression testing before production merge.
+
 Then: Cleanup worktree (Step 5)
 
 #### Option 3: Keep As-Is
@@ -198,3 +200,4 @@ git worktree remove <worktree-path>
 
 **Pairs with:**
 - **using-git-worktrees** - Cleans up worktree created by that skill
+- **staging-integration** - If this PR is part of a multi-PR feature or spans multiple repos, use the `staging-integration` skill after code review passes to merge all PRs to a staging branch for regression testing before production merge

@@ -68,3 +68,4 @@ After all tasks complete and verified:
 - **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **superpowers:writing-plans** - Creates the plan this skill executes
 - **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **superpowers:staging-integration** - If the plan produces multiple PRs or spans multiple repos, use after code review passes to merge all PRs to a staging branch for regression testing before production merge

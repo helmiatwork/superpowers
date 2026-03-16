@@ -89,6 +89,10 @@ You: [Fix progress indicators]
 - Review before merge
 - Review when stuck
 
+## After Review Passes
+
+**Multi-PR or multi-repo features:** If this PR is part of a feature with multiple PRs or spanning multiple repos, use `staging-integration` skill to merge all approved PRs to a staging branch for regression testing before production merge. Don't merge individual PRs to main until staging tests pass.
+
 ## Red Flags
 
 **Never:**
@@ -96,6 +100,7 @@ You: [Fix progress indicators]
 - Ignore Critical issues
 - Proceed with unfixed Important issues
 - Argue with valid technical feedback
+- Merge multi-PR features without staging integration testing
 
 **If reviewer wrong:**
 - Push back with technical reasoning
