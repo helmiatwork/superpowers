@@ -231,12 +231,19 @@ Done!
 - Review loops add iterations
 - But catches issues early (cheaper than debugging later)
 
+## Atomic Commits & PRs
+
+- **Atomic commits:** Each implementer subagent commits one logical context per commit. If the commit message needs "and" for unrelated changes, split it.
+- **Atomic PRs:** If the total implementation exceeds 20 files, the orchestrator MUST plan for split PRs by domain/context before dispatching implementers. Group tasks by domain so each PR is independently reviewable and mergeable.
+- **When split PRs exist:** Use `staging-integration` to test all PRs together before merging.
+
 ## Red Flags
 
 **Never:**
 - Start implementation on main/master branch — always use a feature branch from main/master
 - Push directly to main/master — always use PRs
 - Branch from staging or other feature branches — always from main/master
+- Create commits mixing unrelated contexts (API + UI + tests for different features)
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)

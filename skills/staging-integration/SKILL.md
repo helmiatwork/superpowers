@@ -13,6 +13,7 @@ Coordinate multi-PR and multi-repo features through a staging branch for regress
 
 **Multi-PR features (same repo):**
 - Feature is split into 2+ PRs (e.g., API + UI + migrations)
+- Feature was split because it exceeded 20 files (atomic PR strategy)
 - Each PR passed individual code review but hasn't been tested together
 - Need to verify all pieces work as a whole before merging to main
 
@@ -279,6 +280,8 @@ Normal completion flow:
 | Creating feature branches from staging | Feature branches ALWAYS branch from main/master |
 | Pushing directly to main/master | Always use PRs — never push directly |
 | Mixing feature branch work with staging branch | Keep them completely separate — staging is for integration testing only |
+| Creating a single massive PR instead of splitting | PRs with 20+ files must be split by domain/context before review |
+| Mixing unrelated changes in one commit | Atomic commits — one logical context per commit |
 | Merging PRs to main without integration testing | Always use staging when multiple PRs |
 | Testing only the last PR merged | Run full suite after ALL PRs are in staging |
 | Forgetting to delete staging branches | Cleanup is part of the flow — always delete after merge |

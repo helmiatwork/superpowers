@@ -307,6 +307,56 @@ These rules apply to ALL agents at ALL times:
 
 **Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Never branch from staging."
 
+## ATOMIC COMMITS & PR STRATEGY — NON-NEGOTIABLE
+
+These rules apply to ALL agents at ALL times:
+
+### Atomic Commits (per context)
+
+Every commit must be **one logical unit of change** — one context, one purpose:
+
+- **One concern per commit** — don't mix API changes with UI changes, don't mix refactoring with features, don't mix unrelated fixes
+- **Each commit must leave the codebase in a working state** — tests pass, builds succeed
+- **Commit message describes the single context** — if you need "and" in the message, split the commit
+- **Group by domain/context** — all changes to the auth system in one commit, all changes to the payment flow in another
+
+```
+✅ GOOD:
+  commit 1: "feat(auth): add JWT refresh token endpoint"
+  commit 2: "feat(ui): add token refresh indicator"
+  commit 3: "test(auth): add refresh token integration tests"
+
+❌ BAD:
+  commit 1: "add refresh token endpoint, UI indicator, and tests"
+```
+
+### Atomic PRs (max 20 files)
+
+**If a PR would change more than 20 files, it MUST be split into smaller PRs by context/domain:**
+
+- Each PR covers **one logical context** — one feature area, one subsystem, one layer
+- Split by domain boundary: backend API, frontend UI, database migrations, shared types, tests, config
+- Each split PR must be **independently reviewable and mergeable** — no PR should break things if merged alone
+- PRs can depend on each other (merge order matters) — document the dependency
+
+**How to split:**
+```
+Feature: "user profile with avatar upload"
+
+❌ BAD: 1 PR with 35 files (API + storage + UI + tests + migrations)
+
+✅ GOOD:
+  PR 1: "feat(db): add avatar storage schema" (4 files)
+  PR 2: "feat(api): add avatar upload/download endpoints" (8 files)
+  PR 3: "feat(ui): add avatar upload component and profile page" (12 files)
+  PR 4: "test(e2e): add avatar upload integration tests" (5 files)
+  Merge order: PR 1 → PR 2 → PR 3 → PR 4
+```
+
+**When split PRs exist:** Use `staging-integration` skill to test all PRs together before merging.
+
+**Orchestrators must enforce this.** When delegating to @fixer: "Atomic commits per context. If PR exceeds 20 files, split by domain. Each commit = one logical change, each PR = one logical context."
+
 <SUBAGENT-STOP>
 If you were dispatched as a subagent to execute a specific task, skip this skill.
 </SUBAGENT-STOP>

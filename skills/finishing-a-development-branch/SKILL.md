@@ -88,6 +88,16 @@ Then: Cleanup worktree (Step 5)
 
 #### Option 2: Push and Create PR
 
+**Before pushing, check file count:**
+```bash
+# Count changed files against base branch
+git diff --name-only <base-branch>...HEAD | wc -l
+```
+
+**If > 20 files:** STOP. Split into multiple PRs by domain/context before pushing. Each PR must be independently reviewable and mergeable. Group by: backend API, frontend UI, database, shared types, tests, config. Document merge order if PRs depend on each other.
+
+**If ≤ 20 files:** Proceed normally.
+
 ```bash
 # Push branch
 git push -u origin <feature-branch>
@@ -183,6 +193,8 @@ git worktree remove <worktree-path>
 **Never:**
 - Push directly to main/master — always use PRs
 - Branch from staging or other feature branches — feature branches always from main/master
+- Create a PR with more than 20 files without splitting by context
+- Create commits mixing unrelated contexts
 - Proceed with failing tests
 - Merge without verifying tests on result
 - Delete work without confirmation
