@@ -57,7 +57,7 @@ Examples:
 - Staging branches are **temporary** — deleted after feature merges to main
 - Staging branches are created from `main` (or the project's base branch)
 - Feature branches are ALWAYS created from `main` — never from staging or other feature branches
-- Never commit directly to staging — only merge PRs into it
+- **Never commit directly to staging** — staging is merge-only. All commits MUST go on feature branches, then get merged into staging. If a fix is needed during staging testing, commit it on the feature branch and re-merge into staging.
 - Never push directly to main/master — always use PRs
 - Staging branches are **not** long-lived environment branches
 - Staging and feature branches are **completely separate** — never mix them
