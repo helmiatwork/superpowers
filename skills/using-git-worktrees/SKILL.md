@@ -82,6 +82,10 @@ project=$(basename "$(git rev-parse --show-toplevel)")
 
 ### 2. Create Worktree
 
+**CRITICAL: Always branch from main/master.**
+
+Feature branches MUST be created from the project's base branch (main or master). Never branch from a staging branch, another feature branch, or any non-base branch.
+
 ```bash
 # Determine full path
 case $LOCATION in
@@ -93,8 +97,9 @@ case $LOCATION in
     ;;
 esac
 
-# Create worktree with new branch
-git worktree add "$path" -b "$BRANCH_NAME"
+# Ensure we branch from latest main/master
+git fetch origin
+git worktree add "$path" -b "$BRANCH_NAME" origin/main
 cd "$path"
 ```
 
@@ -194,6 +199,7 @@ Ready to implement auth feature
 ## Red Flags
 
 **Never:**
+- Create feature branches from staging branches or other feature branches — always from main/master
 - Create worktree without verifying it's ignored (project-local)
 - Skip baseline test verification
 - Proceed with failing tests without asking
@@ -201,6 +207,7 @@ Ready to implement auth feature
 - Skip CLAUDE.md check
 
 **Always:**
+- Branch from main/master (fetch latest first)
 - Follow directory priority: existing > CLAUDE.md > ask
 - Verify directory is ignored for project-local
 - Auto-detect and run project setup

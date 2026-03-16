@@ -296,6 +296,17 @@ Is this a completed feature?
 
 This ensures continuity across sessions. The next orchestrator can pick up exactly where you left off.
 
+## BRANCHING RULES — NON-NEGOTIABLE
+
+These rules apply to ALL agents at ALL times:
+
+1. **Feature branches ALWAYS branch from main/master** — never from staging, other feature branches, or any non-base branch
+2. **Never push directly to main/master** — always create a PR and go through the review flow
+3. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
+4. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
+
+**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Never branch from staging."
+
 <SUBAGENT-STOP>
 If you were dispatched as a subagent to execute a specific task, skip this skill.
 </SUBAGENT-STOP>

@@ -234,7 +234,9 @@ Done!
 ## Red Flags
 
 **Never:**
-- Start implementation on main/master branch without explicit user consent
+- Start implementation on main/master branch — always use a feature branch from main/master
+- Push directly to main/master — always use PRs
+- Branch from staging or other feature branches — always from main/master
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
 - Dispatch multiple implementation subagents in parallel (conflicts)

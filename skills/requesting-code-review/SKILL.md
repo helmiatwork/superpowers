@@ -96,6 +96,7 @@ You: [Fix progress indicators]
 ## Red Flags
 
 **Never:**
+- Push directly to main/master — always use PRs
 - Skip review because "it's simple"
 - Ignore Critical issues
 - Proceed with unfixed Important issues

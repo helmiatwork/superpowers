@@ -55,8 +55,11 @@ Examples:
 **Rules:**
 - Staging branches are **temporary** — deleted after feature merges to main
 - Staging branches are created from `main` (or the project's base branch)
+- Feature branches are ALWAYS created from `main` — never from staging or other feature branches
 - Never commit directly to staging — only merge PRs into it
+- Never push directly to main/master — always use PRs
 - Staging branches are **not** long-lived environment branches
+- Staging and feature branches are **completely separate** — never mix them
 
 ## Same-Repo Flow (Multiple PRs)
 
@@ -273,6 +276,9 @@ Normal completion flow:
 
 | Mistake | Fix |
 |---------|-----|
+| Creating feature branches from staging | Feature branches ALWAYS branch from main/master |
+| Pushing directly to main/master | Always use PRs — never push directly |
+| Mixing feature branch work with staging branch | Keep them completely separate — staging is for integration testing only |
 | Merging PRs to main without integration testing | Always use staging when multiple PRs |
 | Testing only the last PR merged | Run full suite after ALL PRs are in staging |
 | Forgetting to delete staging branches | Cleanup is part of the flow — always delete after merge |
