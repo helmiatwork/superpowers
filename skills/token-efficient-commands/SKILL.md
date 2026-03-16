@@ -159,6 +159,28 @@ Never power through errors hoping the chain will work out.
 | "This command is too simple for rtk" | Simple commands still produce verbose output. Always use rtk. |
 | "I'll check the output after" | You can't un-burn tokens. Compress first. |
 
+## Silent Edits — No Narration
+
+When editing files, do NOT narrate or preview what you're about to change. Just do it.
+
+```
+# NEVER do this:
+"Now I'll rewrite the Prospects.tsx file to match the GRIN UI specification:"
+[Edit tool call]
+
+# ALWAYS do this:
+[Edit tool call — no preamble, no explanation]
+```
+
+**Why:** Narrating edits wastes tokens. The user can see the diff in their IDE. Don't describe what you're changing — just change it.
+
+Rules:
+- **No preamble** before Edit/Write tool calls ("Let me update...", "Now I'll rewrite...")
+- **No diff summaries** after edits ("I changed X to Y, added Z...")
+- **Use `Write` for new files** — it produces no diff preview
+- **Use `Edit` for modifications** — keep `old_string` minimal but unique
+- **Batch related edits** — multiple Edit calls in one response, no text between them
+
 ## Integration with Orchestrator
 
 When the orchestrator delegates to any agent, include in the briefing:
