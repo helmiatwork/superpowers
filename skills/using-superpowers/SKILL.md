@@ -185,7 +185,7 @@ Before every dispatch cycle, verify:
       - @fixer uses `requesting-code-review` to submit the PR for review
       - @oracle uses `receiving-code-review` to evaluate the PR
       - If changes requested: @fixer addresses feedback, updates PR, re-requests review
-      - If approved: @oracle merges the PR
+      - If approved: @oracle informs the user that the PR has passed review and is ready to merge manually
    c. **UPDATE OUTLINE CHECKLIST** - Delegate to @librarian: find the relevant checklist/document in outline via MCP and mark the completed item(s) as done. If the feature is part of a larger project plan, update the progress accordingly.
    d. **SAVE FINAL STATE TO SUPERMEMORY** - Delegate to @librarian: save completion state including the PR URL, what was delivered, and any follow-up items.
 
@@ -204,7 +204,7 @@ Is this a completed feature?
   │   Request code review (@fixer → @oracle)
   │     ↓
   │   Review passed?
-  │     ├─ YES → @oracle merges PR
+  │     ├─ YES → @oracle informs user PR is ready to merge manually
   │     └─ NO → @fixer addresses feedback → re-request review
   │     ↓
   │   Update outline checklist (@librarian)
@@ -288,7 +288,7 @@ digraph skill_flow {
     "Create PR\n(@fixer)" [shape=box];
     "Request code review\n(@fixer → @oracle)" [shape=box];
     "Review passed?" [shape=diamond];
-    "@oracle merges PR" [shape=box];
+    "@oracle informs user\nPR ready to merge" [shape=box];
     "@fixer addresses feedback" [shape=box];
     "Update Outline checklist\n(delegate to @librarian)" [shape=box];
     "Save final state + PR URL\nto Supermemory" [shape=box];
@@ -339,10 +339,10 @@ digraph skill_flow {
     "Is feature complete?" -> "Done" [label="no"];
     "Create PR\n(@fixer)" -> "Request code review\n(@fixer → @oracle)";
     "Request code review\n(@fixer → @oracle)" -> "Review passed?";
-    "Review passed?" -> "@oracle merges PR" [label="yes"];
+    "Review passed?" -> "@oracle informs user\nPR ready to merge" [label="yes"];
     "Review passed?" -> "@fixer addresses feedback" [label="no"];
     "@fixer addresses feedback" -> "Request code review\n(@fixer → @oracle)";
-    "@oracle merges PR" -> "Update Outline checklist\n(delegate to @librarian)";
+    "@oracle informs user\nPR ready to merge" -> "Update Outline checklist\n(delegate to @librarian)";
     "Update Outline checklist\n(delegate to @librarian)" -> "Save final state + PR URL\nto Supermemory";
     "Save final state + PR URL\nto Supermemory" -> "Done";
 }
