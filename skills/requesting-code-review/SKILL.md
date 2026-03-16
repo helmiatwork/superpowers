@@ -89,6 +89,10 @@ You: [Fix progress indicators]
 - Review before merge
 - Review when stuck
 
+## Before Requesting Review
+
+**Check PR size:** If the PR changes more than 20 files, it MUST be split into smaller PRs by domain/context before requesting review. Large PRs get poor reviews — reviewers miss issues. Split by: backend, frontend, database, shared types, tests, config.
+
 ## After Review Passes
 
 **Multi-PR or multi-repo features:** If this PR is part of a feature with multiple PRs or spanning multiple repos, use `staging-integration` skill to merge all approved PRs to a staging branch for regression testing before production merge. Don't merge individual PRs to main until staging tests pass.

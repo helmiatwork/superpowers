@@ -324,6 +324,15 @@ PASS
 **REFACTOR**
 Extract validation for multiple fields if needed.
 
+## Atomic Commits in TDD
+
+Each commit should be one logical context — one TDD cycle or a cohesive group of related cycles:
+
+- **Good:** `feat(auth): add login validation` (test + implementation for one behavior)
+- **Bad:** `add login validation, signup form, and API client` (three unrelated contexts)
+
+If your commit message needs "and" to describe unrelated changes, split it.
+
 ## Verification Checklist
 
 Before marking work complete:
@@ -336,6 +345,7 @@ Before marking work complete:
 - [ ] Output pristine (no errors, warnings)
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
+- [ ] Each commit is one logical context (no mixed concerns)
 
 Can't check all boxes? You skipped TDD. Start over.
 
