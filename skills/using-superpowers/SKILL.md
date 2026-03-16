@@ -307,8 +307,9 @@ These rules apply to ALL agents at ALL times:
 5. **Never push fixes to staging** — if staging tests fail, switch to the feature branch, fix there, push the feature branch, then re-merge into staging. Never develop on staging.
 6. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
 7. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
+8. **Never push parent branches to GitHub** — agents must NEVER push main/master or staging branches to the remote. Only feature branches may be pushed to GitHub. Parent branches are updated via PRs and merges only.
 
-**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Staging only receives merges from feature branches — the only commits allowed on staging are merge conflict resolutions. All fixes go on the feature branch first."
+**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Never push parent branches (main/master/staging) to GitHub — only push feature branches. Staging only receives merges from feature branches — the only commits allowed on staging are merge conflict resolutions. All fixes go on the feature branch first."
 
 ## ATOMIC COMMITS & PR STRATEGY — NON-NEGOTIABLE
 

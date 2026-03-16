@@ -101,6 +101,7 @@ You: [Fix progress indicators]
 
 **Never:**
 - Push directly to main/master — always use PRs
+- Push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Skip review because "it's simple"
 - Ignore Critical issues
 - Proceed with unfixed Important issues

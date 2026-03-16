@@ -61,6 +61,7 @@ Examples:
 - **Exception: merge conflict resolution commits are allowed on staging** — when merging a feature branch into staging produces conflicts, resolve the conflict and commit the merge resolution on staging. This is the ONLY type of commit allowed on staging.
 - If staging tests fail, switch to the feature branch, fix there, push the feature branch, then re-merge into staging.
 - Never push directly to main/master — always use PRs
+- **Never push parent branches (main/master/staging) to GitHub** — only feature branches may be pushed. Parent branches are updated via PRs and merges only.
 - Staging branches are **not** long-lived environment branches
 - Staging and feature branches are **completely separate** — never mix them
 
@@ -125,7 +126,7 @@ git merge origin/[pr-branch-2] --no-ff -m "staging: merge [PR title 2]"
 # 3. Run tests
 [test command]
 
-# 4. Push staging for CI (if applicable)
+# 4. Push staging for CI (if applicable — temporary, deleted after merge)
 git push -u origin staging/[feature-name]
 
 # 5. After user merges to main, cleanup
@@ -286,6 +287,7 @@ Normal completion flow:
 |---------|-----|
 | Creating feature branches from staging | Feature branches ALWAYS branch from main/master |
 | Pushing directly to main/master | Always use PRs — never push directly |
+| Pushing parent branches (main/master/staging) to GitHub | Only push feature branches — parent branches are updated via PRs and merges only |
 | Mixing feature branch work with staging branch | Keep them completely separate — staging is for integration testing only |
 | Creating a single massive PR instead of splitting | PRs with 20+ files must be split by domain/context before review |
 | Mixing unrelated changes in one commit | Atomic commits — one logical context per commit |
