@@ -24,6 +24,8 @@ If the spec covers multiple independent subsystems, it should have been broken i
 
 ## File Structure
 
+**Read codemaps first.** Before mapping files, read `codemap.md` in relevant directories — every folder has one. Codemaps show file purposes, dependencies, and data flow without reading every file. Only drill into specific files when you need implementation detail the codemap doesn't cover.
+
 Before defining tasks, map out which files will be created or modified and what each one is responsible for. This is where decomposition decisions get locked in.
 
 - Design units with clear boundaries and well-defined interfaces. Each file should have one clear responsibility.
@@ -108,6 +110,7 @@ git commit -m "feat: add specific feature"
 - Complete code in plan (not "add validation")
 - Exact commands with expected output
 - Reference relevant skills with @ syntax
+- **Reference TRDs** — if TRDs exist in Outline (API specs, migration plans, schemas), link them in the relevant tasks so @fixer executes from the TRD instead of making design decisions
 - DRY, YAGNI, TDD, frequent commits
 
 ## Plan Review Loop
