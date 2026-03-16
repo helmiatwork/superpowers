@@ -249,8 +249,16 @@ Before every dispatch cycle, verify:
       - @oracle uses `receiving-code-review` to evaluate the PR
       - If changes requested: @fixer addresses feedback, updates PR, re-requests review
       - If approved: @oracle informs the user that the PR has passed review and is ready to merge manually
-   c. **UPDATE OUTLINE CHECKLIST** - Delegate to @librarian: find the relevant checklist/document in outline via MCP and mark the completed item(s) as done. If the feature is part of a larger project plan, update the progress accordingly.
-   d. **SAVE FINAL STATE TO SUPERMEMORY** - Delegate to @librarian: save completion state including the PR URL, what was delivered, and any follow-up items.
+   c. **STAGING INTEGRATION (if multi-PR or multi-repo)** - When the feature has multiple PRs or spans multiple repos (frontend + backend, etc.):
+      - Use `staging-integration` skill
+      - @fixer creates staging branch, merges all approved PRs, runs full test suite + regression tests
+      - Multi-repo: create staging branches in each repo, run cross-repo integration tests
+      - If tests fail: @fixer fixes on PR branch, re-merges into staging, re-tests
+      - If tests pass: @oracle informs user all PRs are tested together and ready to merge manually
+      - Merge order for multi-repo: backend → frontend → dependent services
+      - Staging branches are deleted after user merges to main
+   d. **UPDATE OUTLINE CHECKLIST** - Delegate to @librarian: find the relevant checklist/document in outline via MCP and mark the completed item(s) as done. If the feature is part of a larger project plan, update the progress accordingly.
+   e. **SAVE FINAL STATE TO SUPERMEMORY** - Delegate to @librarian: save completion state including the PR URL, what was delivered, and any follow-up items.
 
 3. **SAVE TO OUTLINE (if needed)** - If the work produced documentation, architectural decisions, plans, or knowledge worth persisting long-term, also save/update the relevant document in outline via MCP.
 
@@ -267,8 +275,18 @@ Is this a completed feature?
   │   Request code review (@fixer → @oracle)
   │     ↓
   │   Review passed?
-  │     ├─ YES → @oracle informs user PR is ready to merge manually
+  │     ├─ YES ↓
   │     └─ NO → @fixer addresses feedback → re-request review
+  │     ↓
+  │   Multiple PRs or multi-repo?
+  │     ├─ YES → staging-integration skill:
+  │     │         @fixer creates staging branch
+  │     │         Merges all approved PRs
+  │     │         Runs tests + regression
+  │     │         Multi-repo: staging per repo + integration tests
+  │     │         Tests pass? → @oracle informs user ready to merge
+  │     │         Tests fail? → @fixer fixes on PR branch → re-merge → re-test
+  │     └─ NO → @oracle informs user PR is ready to merge manually
   │     ↓
   │   Update outline checklist (@librarian)
   │     ↓
@@ -360,6 +378,11 @@ digraph skill_flow {
     "Create PR\n(@fixer)" [shape=box];
     "Request code review\n(@fixer → @oracle)" [shape=box];
     "Review passed?" [shape=diamond];
+    "Multi-PR or multi-repo?" [shape=diamond];
+    "Staging integration\n(@fixer merges to staging,\nruns tests + regression)" [shape=box];
+    "Staging tests pass?" [shape=diamond];
+    "@fixer fixes on PR branch\nre-merges to staging" [shape=box];
+    "@oracle informs user\nstaging passed, ready to merge" [shape=box];
     "@oracle informs user\nPR ready to merge" [shape=box];
     "@fixer addresses feedback" [shape=box];
     "Update Outline checklist\n(delegate to @librarian)" [shape=box];
@@ -422,9 +445,18 @@ digraph skill_flow {
     "Is feature complete?" -> "Done" [label="no"];
     "Create PR\n(@fixer)" -> "Request code review\n(@fixer → @oracle)";
     "Request code review\n(@fixer → @oracle)" -> "Review passed?";
-    "Review passed?" -> "@oracle informs user\nPR ready to merge" [label="yes"];
+    "Review passed?" -> "Multi-PR or multi-repo?" [label="yes"];
     "Review passed?" -> "@fixer addresses feedback" [label="no"];
     "@fixer addresses feedback" -> "Request code review\n(@fixer → @oracle)";
+
+    // Staging branch
+    "Multi-PR or multi-repo?" -> "Staging integration\n(@fixer merges to staging,\nruns tests + regression)" [label="yes"];
+    "Multi-PR or multi-repo?" -> "@oracle informs user\nPR ready to merge" [label="no (single PR)"];
+    "Staging integration\n(@fixer merges to staging,\nruns tests + regression)" -> "Staging tests pass?";
+    "Staging tests pass?" -> "@oracle informs user\nstaging passed, ready to merge" [label="yes"];
+    "Staging tests pass?" -> "@fixer fixes on PR branch\nre-merges to staging" [label="no"];
+    "@fixer fixes on PR branch\nre-merges to staging" -> "Staging integration\n(@fixer merges to staging,\nruns tests + regression)";
+    "@oracle informs user\nstaging passed, ready to merge" -> "Update Outline checklist\n(delegate to @librarian)";
     "@oracle informs user\nPR ready to merge" -> "Update Outline checklist\n(delegate to @librarian)";
     "Update Outline checklist\n(delegate to @librarian)" -> "Save final state + PR URL\nto Supermemory";
     "Save final state + PR URL\nto Supermemory" -> "Done";
@@ -543,7 +575,7 @@ Skills: `agent-browser`, `ui-design-system`, `ux-researcher-designer`, `landing-
 - MCPs: opencode-browser, outline, supermemory
 
 **@fixer** (Execution):
-Skills: `test-driven-development`, `verification-before-completion`, `simplify`, `executing-plans`, `requesting-code-review`, `finishing-a-development-branch`, `using-git-worktrees`, `senior-backend`, `senior-frontend`, `senior-fullstack`, `ci-cd-pipeline-builder`, `api-test-suite-builder`
+Skills: `test-driven-development`, `verification-before-completion`, `simplify`, `executing-plans`, `requesting-code-review`, `finishing-a-development-branch`, `using-git-worktrees`, `staging-integration`, `senior-backend`, `senior-frontend`, `senior-fullstack`, `ci-cd-pipeline-builder`, `api-test-suite-builder`
 
 - Parallel task execution and well-specified implementations
 - Test-driven development — write tests before implementation code

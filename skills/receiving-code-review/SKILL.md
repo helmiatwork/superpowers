@@ -204,6 +204,10 @@ You understand 1,2,3,6. Unclear on 4,5.
 
 When replying to inline review comments on GitHub, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment.
 
+## After All Feedback Addressed
+
+**Multi-PR or multi-repo features:** Once review passes, if this PR is part of a feature with multiple PRs or spanning multiple repos, the next step is `staging-integration` — merge all approved PRs to a staging branch for regression testing before production merge.
+
 ## The Bottom Line
 
 **External feedback = suggestions to evaluate, not orders to follow.**
