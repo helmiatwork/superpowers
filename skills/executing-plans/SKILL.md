@@ -62,6 +62,7 @@ After all tasks complete and verified:
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch — always use a feature branch from main/master
 - Never push directly to main/master — always use PRs
+- Never push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Never branch from staging or other feature branches
 - Never commit fixes to staging — staging only receives merges from feature branches (merge conflict resolutions are the only exception)
 - **Atomic commits:** Each commit = one logical context. Don't mix unrelated changes.

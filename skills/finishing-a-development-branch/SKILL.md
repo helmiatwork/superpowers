@@ -192,6 +192,7 @@ git worktree remove <worktree-path>
 
 **Never:**
 - Push directly to main/master — always use PRs
+- Push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Branch from staging or other feature branches — feature branches always from main/master
 - Commit fixes to staging — staging only receives merges from feature branches (merge conflict resolutions are the only exception)
 - Create a PR with more than 20 files without splitting by context
