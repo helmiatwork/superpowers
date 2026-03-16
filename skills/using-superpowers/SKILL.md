@@ -301,15 +301,16 @@ This ensures continuity across sessions. The next orchestrator can pick up exact
 These rules apply to ALL agents at ALL times:
 
 1. **Feature branches ALWAYS branch from main/master** — never from staging, other feature branches, or any non-base branch
-2. **Never push directly to main/master** — always create a PR and go through the review flow
-3. **Staging only receives merges from feature branches** — no direct feature/fix commits on staging. All development happens on feature branches, then gets merged into staging for testing.
-4. **Exception: merge conflict resolution commits are allowed on staging** — when merging a feature branch into staging produces conflicts, the agent may resolve the conflict and commit the merge resolution directly on staging. This is the ONLY type of commit allowed on staging.
-5. **Never push fixes to staging** — if staging tests fail, switch to the feature branch, fix there, push the feature branch, then re-merge into staging. Never develop on staging.
-6. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
-7. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
-8. **Never push parent branches to GitHub** — agents must NEVER push main/master or staging branches to the remote. Only feature branches may be pushed to GitHub. Parent branches are updated via PRs and merges only.
+2. **Never commit to parent branches (main/master)** — all commits must be created on feature branches. Parent branches are only updated via merges and PRs.
+3. **Never push directly to main/master** — always create a PR and go through the review flow
+5. **Staging only receives merges from feature branches** — no direct feature/fix commits on staging. All development happens on feature branches, then gets merged into staging for testing.
+6. **Exception: merge conflict resolution commits are allowed on staging** — when merging a feature branch into staging produces conflicts, the agent may resolve the conflict and commit the merge resolution directly on staging. This is the ONLY type of commit allowed on staging.
+7. **Never push fixes to staging** — if staging tests fail, switch to the feature branch, fix there, push the feature branch, then re-merge into staging. Never develop on staging.
+8. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
+9. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
+10. **Never push parent branches to GitHub** — agents must NEVER push main/master or staging branches to the remote. Only feature branches may be pushed to GitHub. Parent branches are updated via PRs and merges only.
 
-**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Never push parent branches (main/master/staging) to GitHub — only push feature branches. Staging only receives merges from feature branches — the only commits allowed on staging are merge conflict resolutions. All fixes go on the feature branch first."
+**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Never commit to parent branches (main/master) — all commits on feature branches only. Never push parent branches (main/master/staging) to GitHub — only push feature branches. Staging only receives merges from feature branches — the only commits allowed on staging are merge conflict resolutions."
 
 ## ATOMIC COMMITS & PR STRATEGY — NON-NEGOTIABLE
 
