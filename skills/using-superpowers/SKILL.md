@@ -302,11 +302,12 @@ These rules apply to ALL agents at ALL times:
 
 1. **Feature branches ALWAYS branch from main/master** — never from staging, other feature branches, or any non-base branch
 2. **Never push directly to main/master** — always create a PR and go through the review flow
-3. **Never commit to staging branches** — staging is merge-only. All commits go on feature branches, then get merged into staging for testing. If a fix is needed, commit it on the feature branch and re-merge into staging.
-4. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
-5. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
+3. **Never commit to staging branches** — staging is merge-only. All commits go on feature branches, then get merged into staging for testing.
+4. **Never push to staging after fixing something** — fixes go on the feature branch, push to the feature branch, then re-merge into staging. The staging branch is only updated via merges, never via direct pushes of new work.
+5. **Staging branches are for integration testing ONLY** — never develop on them, never branch from them
+6. **Keep feature branches and staging branches completely separate** — they serve different purposes and must never be mixed
 
-**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Never commit to staging — commits go on feature branches only. Never branch from staging."
+**Orchestrators must enforce this.** When delegating to @fixer or any agent, include: "Branch from main/master. Never push directly to main. Never commit or push fixes to staging — always fix on feature branch, push feature branch, then re-merge into staging."
 
 ## ATOMIC COMMITS & PR STRATEGY — NON-NEGOTIABLE
 
