@@ -87,8 +87,9 @@ Merge conflicts?
   ↓
 Tests pass?
   ├─ NO → @fixer investigates integration issues
-  │         Fix on the relevant PR branch
-  │         Re-merge into staging
+  │         Fix on the relevant PR/feature branch (NEVER on staging)
+  │         Push fix to the feature branch
+  │         Re-merge feature branch into staging
   │         Re-run tests
   └─ YES ↓
   ↓
@@ -96,7 +97,7 @@ Tests pass?
   [regression test command or manual verification checklist]
   ↓
 Regression pass?
-  ├─ NO → @fixer investigates, fix on PR branch, re-merge
+  ├─ NO → @fixer investigates, fix on feature branch, push feature branch, re-merge into staging
   └─ YES ↓
   ↓
 @oracle informs user:
@@ -155,8 +156,9 @@ All staging branches created?
   ↓
 Integration tests pass?
   ├─ NO → Identify which repo's changes break integration
-  │         @fixer fixes on the relevant PR branch
-  │         Re-merge into that repo's staging branch
+  │         @fixer fixes on the relevant feature branch (NEVER on staging)
+  │         Push fix to the feature branch
+  │         Re-merge feature branch into that repo's staging branch
   │         Re-run integration tests
   └─ YES ↓
   ↓
@@ -166,7 +168,7 @@ Integration tests pass?
   • API backward compatibility intact?
   ↓
 Regression pass?
-  ├─ NO → @fixer investigates, fix on PR branch, re-merge, re-test
+  ├─ NO → @fixer investigates, fix on feature branch, push feature branch, re-merge into staging, re-test
   └─ YES ↓
   ↓
 @oracle informs user:
@@ -286,5 +288,5 @@ Normal completion flow:
 | Testing only the last PR merged | Run full suite after ALL PRs are in staging |
 | Forgetting to delete staging branches | Cleanup is part of the flow — always delete after merge |
 | Merging multi-repo in wrong order | Backend before frontend, shared libs first |
-| Committing fixes directly to staging | Fix on PR branch, re-merge into staging |
+| Committing or pushing fixes to staging | Fix on feature branch, push feature branch, re-merge into staging |
 | Skipping regression for "small" changes | Small changes break things too — always regress |
