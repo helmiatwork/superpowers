@@ -243,6 +243,7 @@ Done!
 - Start implementation on main/master branch — always use a feature branch from main/master
 - Push directly to main/master — always use PRs
 - Branch from staging or other feature branches — always from main/master
+- Commit to staging branches — all commits go on feature branches only
 - Create commits mixing unrelated contexts (API + UI + tests for different features)
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
