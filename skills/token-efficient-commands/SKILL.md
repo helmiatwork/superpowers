@@ -15,14 +15,50 @@ Every CLI command MUST be prefixed with `rtk` for 60-90% token savings on output
 
 ```
 # EVERY command gets the rtk prefix:
+
+# Git
 rtk git status
 rtk git diff
 rtk git log --oneline -10
 rtk git merge feature/xyz --no-edit
 rtk git cherry-pick <commit-hash>
+rtk git rebase main
+rtk git pull
+rtk git push
+rtk git stash
+rtk git branch -a
+
+# Rails / Ruby
+rtk bin/rails db:migrate
+rtk bin/rails db:seed
+rtk bin/rails routes
+rtk bin/rails test
+rtk bin/rails console
+rtk bin/rails server
+rtk bundle install
+rtk bundle exec rspec
+rtk bundle exec rake
+
+# npm / Node
+rtk npm install
 rtk npm run dev
+rtk npm run build
 rtk npm test
+rtk npx <command>
 rtk yarn install
+rtk yarn dev
+rtk yarn build
+
+# Python
+rtk python manage.py migrate
+rtk python manage.py runserver
+rtk python manage.py test
+rtk pip install -r requirements.txt
+rtk pytest
+rtk python -m venv .venv
+rtk uv pip install -r requirements.txt
+
+# Other
 rtk cargo build
 rtk docker ps
 rtk kubectl get pods
@@ -36,6 +72,7 @@ RTK (Rust Token Killer) compresses CLI output by 60-90%, stripping noise like:
 - File-by-file diff stats from git merge
 - Package update banners (refine, npm, yarn)
 - Verbose build output
+- Rails deprecation warnings, Sentry init logs, autoload notices
 - Docker/kubectl table formatting bloat
 - ANSI color codes and decorative borders
 
@@ -109,13 +146,16 @@ Never power through errors hoping the chain will work out.
 | `npm run dev 2>&1` without redirect | Dev server dumps entire stdout | `> /dev/null 2>&1 &` |
 | Continuing after `CONFLICT` | Broken state, wasted work | Stop and resolve |
 | `git merge` without `-q` | Full file list dumped | Add `-q` or use `rtk` |
+| `bin/rails db:migrate` (no rtk) | Deprecation warnings, init logs flood output | `rtk bin/rails db:migrate` |
+| `python manage.py migrate` (no rtk) | Verbose migration output | `rtk python manage.py migrate` |
+| `pip install` (no rtk) | Package download noise | `rtk pip install -r requirements.txt` |
 
 ## Common Rationalizations
 
 | Excuse | Reality |
 |--------|---------|
 | "It's faster to chain them" | It's faster until one fails mid-chain and you debug for 10 minutes |
-| "RTK is just for git" | RTK compresses npm, yarn, cargo, docker, kubectl, and more |
+| "RTK is just for git" | RTK compresses npm, yarn, cargo, docker, kubectl, Rails, and more |
 | "This command is too simple for rtk" | Simple commands still produce verbose output. Always use rtk. |
 | "I'll check the output after" | You can't un-burn tokens. Compress first. |
 
