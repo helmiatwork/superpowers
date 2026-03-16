@@ -1,43 +1,43 @@
 ---
 name: silent-edits
-description: Use when editing or creating ANY file — never narrate, preview, or summarize changes. Just make the edit silently.
+description: Use when editing or creating ANY file — all subagents (fixer, executor, etc.) must be 100% silent. Zero text output. Only the orchestrator speaks to the user.
 ---
 
 # Silent Edits
 
 ## The Rule
 
-Never narrate, preview, or summarize file edits. No preamble before Edit/Write calls, no summaries after. Just make the change.
+**All subagents produce ZERO text output.** No narration, no preamble, no summaries, no status updates. Only tool calls.
 
-## Bad (token waste)
+The **orchestrator** is the only agent that communicates with the user. Subagents (fixer, executor, researcher, etc.) do their work silently and return results to the orchestrator, who summarizes.
 
-```
-"Now I'll rewrite the Prospects.tsx file to match the GRIN UI specification:"
-[Edit tool call]
-"I've updated the imports to include Button, TextInput, and Anchor from @mantine/core,
-added the Prospect interface, and restructured the component to..."
-```
-
-## Good (silent)
+## Subagent Behavior (fixer, executor, any delegated agent)
 
 ```
+# The ONLY acceptable output from a subagent:
 [Edit tool call]
 [Edit tool call]
-[Edit tool call]
+[Write tool call]
+[Bash tool call]
 ```
 
-No words. Just edits.
+Zero words. Zero text. Just tool calls. No exceptions.
 
-## Rules
+## What Subagents Must NEVER Do
 
-1. **No preamble** — never say "Let me update...", "Now I'll rewrite...", "I'll modify..."
-2. **No summaries** — never say "I changed X to Y", "Added Z", "Updated the imports to..."
-3. **No diff narration** — the user sees the diff in their IDE, don't repeat it in text
-4. **Batch edits** — multiple Edit calls in one response, zero text between them
-5. **Status only at milestones** — after a group of related edits is done, one short line max (e.g., "Done." or "Fixed.")
-6. **Use `Write` for new files** — no diff preview shown
-7. **Use `Edit` for modifications** — keep `old_string` minimal but unique
+- Narrate what they're about to do ("Now I'll rewrite...", "Let me update...")
+- Summarize what they changed ("I updated X, added Y, fixed Z...")
+- Explain their reasoning ("The issue was...", "This is because...")
+- Report status ("Done.", "Fixed.", "Working on...")
+- Describe diffs — the user sees diffs in their IDE
+
+## Orchestrator Behavior
+
+Only the orchestrator speaks to the user:
+- Summarizes what subagents accomplished
+- Reports errors or blockers
+- Asks questions when input is needed
 
 ## Why
 
-Every word of narration around an edit is wasted tokens. The user's IDE shows the diff. Describing what you're about to change, then changing it, then describing what you changed is triple-spending tokens on the same information.
+Subagent verbosity is pure token waste. The user doesn't read it — they read the orchestrator's summary and the diffs in their IDE. Every word a subagent outputs is a token burned for nothing.
