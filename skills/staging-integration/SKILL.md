@@ -87,9 +87,11 @@ Merge conflicts?
   ↓
 Tests pass?
   ├─ NO → @fixer investigates integration issues
-  │         Fix on the relevant PR/feature branch (NEVER on staging)
-  │         Push fix to the feature branch
-  │         Re-merge feature branch into staging
+  │         Switch to the relevant feature branch: git checkout [feature-branch]
+  │         Fix the issue on the feature branch (NEVER fix on staging)
+  │         Commit and push the feature branch
+  │         Switch back to staging: git checkout staging/[feature-name]
+  │         Re-merge: git merge [feature-branch] --no-ff
   │         Re-run tests
   └─ YES ↓
   ↓
@@ -97,7 +99,7 @@ Tests pass?
   [regression test command or manual verification checklist]
   ↓
 Regression pass?
-  ├─ NO → @fixer investigates, fix on feature branch, push feature branch, re-merge into staging
+  ├─ NO → @fixer switches to feature branch, fixes there, pushes, re-merges into staging
   └─ YES ↓
   ↓
 @oracle informs user:
@@ -156,9 +158,10 @@ All staging branches created?
   ↓
 Integration tests pass?
   ├─ NO → Identify which repo's changes break integration
-  │         @fixer fixes on the relevant feature branch (NEVER on staging)
-  │         Push fix to the feature branch
-  │         Re-merge feature branch into that repo's staging branch
+  │         @fixer switches to the relevant feature branch in that repo
+  │         Fixes the issue on the feature branch (NEVER on staging)
+  │         Commits and pushes the feature branch
+  │         Switches back to staging, re-merges feature branch
   │         Re-run integration tests
   └─ YES ↓
   ↓
@@ -168,7 +171,7 @@ Integration tests pass?
   • API backward compatibility intact?
   ↓
 Regression pass?
-  ├─ NO → @fixer investigates, fix on feature branch, push feature branch, re-merge into staging, re-test
+  ├─ NO → @fixer switches to feature branch, fixes there, pushes, re-merges into staging, re-test
   └─ YES ↓
   ↓
 @oracle informs user:
