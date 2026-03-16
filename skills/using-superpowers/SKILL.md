@@ -253,7 +253,7 @@ Before every dispatch cycle, verify:
       - Use `staging-integration` skill
       - @fixer creates staging branch, merges all approved PRs, runs full test suite + regression tests
       - Multi-repo: create staging branches in each repo, run cross-repo integration tests
-      - If tests fail: @fixer fixes on PR branch, re-merges into staging, re-tests
+      - If tests fail: @fixer switches to feature branch, fixes there, pushes feature branch, re-merges into staging, re-tests
       - If tests pass: @oracle informs user all PRs are tested together and ready to merge manually
       - Merge order for multi-repo: backend → frontend → dependent services
       - Staging branches are deleted after user merges to main
@@ -285,7 +285,7 @@ Is this a completed feature?
   │     │         Runs tests + regression
   │     │         Multi-repo: staging per repo + integration tests
   │     │         Tests pass? → @oracle informs user ready to merge
-  │     │         Tests fail? → @fixer fixes on PR branch → re-merge → re-test
+  │     │         Tests fail? → @fixer switches to feature branch → fixes there → pushes → re-merges into staging → re-test
   │     └─ NO → @oracle informs user PR is ready to merge manually
   │     ↓
   │   Update outline checklist (@librarian)
@@ -444,7 +444,7 @@ digraph skill_flow {
     "Multi-PR or multi-repo?" [shape=diamond];
     "Staging integration\n(@fixer merges to staging,\nruns tests + regression)" [shape=box];
     "Staging tests pass?" [shape=diamond];
-    "@fixer fixes on PR branch\nre-merges to staging" [shape=box];
+    "@fixer switches to feature branch\nfixes there, pushes,\nre-merges to staging" [shape=box];
     "@oracle informs user\nstaging passed, ready to merge" [shape=box];
     "@oracle informs user\nPR ready to merge" [shape=box];
     "@fixer addresses feedback" [shape=box];
@@ -517,8 +517,8 @@ digraph skill_flow {
     "Multi-PR or multi-repo?" -> "@oracle informs user\nPR ready to merge" [label="no (single PR)"];
     "Staging integration\n(@fixer merges to staging,\nruns tests + regression)" -> "Staging tests pass?";
     "Staging tests pass?" -> "@oracle informs user\nstaging passed, ready to merge" [label="yes"];
-    "Staging tests pass?" -> "@fixer fixes on PR branch\nre-merges to staging" [label="no"];
-    "@fixer fixes on PR branch\nre-merges to staging" -> "Staging integration\n(@fixer merges to staging,\nruns tests + regression)";
+    "Staging tests pass?" -> "@fixer switches to feature branch\nfixes there, pushes,\nre-merges to staging" [label="no"];
+    "@fixer switches to feature branch\nfixes there, pushes,\nre-merges to staging" -> "Staging integration\n(@fixer merges to staging,\nruns tests + regression)";
     "@oracle informs user\nstaging passed, ready to merge" -> "Update Outline checklist\n(delegate to @librarian)";
     "@oracle informs user\nPR ready to merge" -> "Update Outline checklist\n(delegate to @librarian)";
     "Update Outline checklist\n(delegate to @librarian)" -> "Save final state + PR URL\nto Supermemory";
