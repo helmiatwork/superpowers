@@ -21,7 +21,7 @@ Every project goes through this process. A todo list, a single-function utility,
 
 You MUST create a task for each of these items and complete them in order:
 
-1. **Explore project context** — check files, docs, recent commits
+1. **Explore project context** — read codemaps first (`codemap.md` in each directory), then docs and recent commits. Do NOT scan all files.
 2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
@@ -29,7 +29,8 @@ You MUST create a task for each of these items and complete them in order:
 6. **Write design doc** — save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
 7. **Spec review loop** — dispatch spec-document-reviewer subagent with precisely crafted review context (never your session history); fix issues and re-dispatch until approved (max 5 iterations, then surface to human)
 8. **User reviews written spec** — ask user to review the spec file before proceeding
-9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+9. **Create TRDs (if needed)** — if feature involves APIs, DB changes, migrations, or integrations, delegate TRD creation to @librarian → @oracle reviews → store in Outline
+10. **Transition to implementation** — invoke writing-plans skill to create implementation plan (referencing TRDs if created)
 
 ## Process Flow
 
@@ -72,7 +73,8 @@ digraph brainstorming {
 
 **Understanding the idea:**
 
-- Check out the current project state first (files, docs, recent commits)
+- **Read codemaps first** — before scanning files, read `codemap.md` files in relevant directories. Every folder has one. This gives you the structural overview without reading every file. Only drill into specific files when the codemap lacks detail for your task. If a codemap is missing, ask @explorer to run `cartography` first.
+- Check out the current project state first (codemaps, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
@@ -130,9 +132,16 @@ After the spec review loop passes, ask the user to review the written spec befor
 
 Wait for the user's response. If they request changes, make them and re-run the spec review loop. Only proceed once the user approves.
 
+**Technical Reference Documents (if needed):**
+
+- If the feature involves APIs, database changes, migrations, or external integrations, the orchestrator should delegate TRD creation to @librarian using the `technical-reference-document` skill BEFORE writing the implementation plan
+- TRDs are stored in Outline and provide exact specs so @fixer can execute without design decisions
+- @oracle reviews TRDs for correctness before implementation begins
+
 **Implementation:**
 
 - Invoke the writing-plans skill to create a detailed implementation plan
+- If TRDs were created, the plan should reference them: "@fixer executes from TRD in Outline"
 - Do NOT invoke any other skill. writing-plans is the next step.
 
 ## Key Principles

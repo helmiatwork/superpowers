@@ -51,7 +51,12 @@ You MUST complete each phase before proceeding to the next.
 
 **BEFORE attempting ANY fix:**
 
-1. **Read Error Messages Carefully**
+1. **Read Codemaps Before Scanning Files**
+   - Read `codemap.md` in relevant directories first — every folder has one
+   - This gives you structural context (file purposes, dependencies, data flow) without reading every file
+   - Only drill into specific files the codemap points you to
+
+2. **Read Error Messages Carefully**
    - Don't skip past errors or warnings
    - They often contain the exact solution
    - Read stack traces completely

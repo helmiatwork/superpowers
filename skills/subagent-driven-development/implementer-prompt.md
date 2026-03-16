@@ -29,6 +29,7 @@ Task tool (general-purpose):
     ## Your Job
 
     Once you're clear on requirements:
+    0. Read `codemap.md` in relevant directories first — every folder has one. Use codemaps for structural understanding instead of scanning all files. Only read specific files you need to modify or understand in detail.
     1. Implement exactly what the task specifies
     2. Write tests (following TDD if task says to)
     3. Verify implementation works
