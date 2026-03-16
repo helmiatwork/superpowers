@@ -57,7 +57,9 @@ Examples:
 - Staging branches are **temporary** — deleted after feature merges to main
 - Staging branches are created from `main` (or the project's base branch)
 - Feature branches are ALWAYS created from `main` — never from staging or other feature branches
-- **Never commit directly to staging** — staging is merge-only. All commits MUST go on feature branches, then get merged into staging. If a fix is needed during staging testing, commit it on the feature branch and re-merge into staging.
+- **Staging only receives merges from feature branches** — no direct feature/fix commits on staging. All development happens on feature branches, then gets merged into staging.
+- **Exception: merge conflict resolution commits are allowed on staging** — when merging a feature branch into staging produces conflicts, resolve the conflict and commit the merge resolution on staging. This is the ONLY type of commit allowed on staging.
+- If staging tests fail, switch to the feature branch, fix there, push the feature branch, then re-merge into staging.
 - Never push directly to main/master — always use PRs
 - Staging branches are **not** long-lived environment branches
 - Staging and feature branches are **completely separate** — never mix them
@@ -291,5 +293,5 @@ Normal completion flow:
 | Testing only the last PR merged | Run full suite after ALL PRs are in staging |
 | Forgetting to delete staging branches | Cleanup is part of the flow — always delete after merge |
 | Merging multi-repo in wrong order | Backend before frontend, shared libs first |
-| Committing or pushing fixes to staging | Fix on feature branch, push feature branch, re-merge into staging |
+| Committing fixes directly on staging | Fix on feature branch, push feature branch, re-merge into staging. Only merge conflict resolution commits are allowed on staging. |
 | Skipping regression for "small" changes | Small changes break things too — always regress |

@@ -63,7 +63,7 @@ After all tasks complete and verified:
 - Never start implementation on main/master branch — always use a feature branch from main/master
 - Never push directly to main/master — always use PRs
 - Never branch from staging or other feature branches
-- Never commit or push fixes to staging branches — all commits go on feature branches, push to feature branch, then re-merge into staging
+- Never commit fixes to staging — staging only receives merges from feature branches (merge conflict resolutions are the only exception)
 - **Atomic commits:** Each commit = one logical context. Don't mix unrelated changes.
 - **Atomic PRs:** If total changes exceed 20 files, split PRs by domain/context. Each PR independently reviewable and mergeable.
 
