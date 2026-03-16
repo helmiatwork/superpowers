@@ -100,6 +100,7 @@ You: [Fix progress indicators]
 ## Red Flags
 
 **Never:**
+- Commit to parent branches (main/master) — all commits must be on feature branches
 - Push directly to main/master — always use PRs
 - Push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Skip review because "it's simple"

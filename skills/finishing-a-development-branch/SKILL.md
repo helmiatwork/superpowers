@@ -191,6 +191,7 @@ git worktree remove <worktree-path>
 ## Red Flags
 
 **Never:**
+- Commit to parent branches (main/master) — all commits must be on feature branches
 - Push directly to main/master — always use PRs
 - Push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Branch from staging or other feature branches — feature branches always from main/master

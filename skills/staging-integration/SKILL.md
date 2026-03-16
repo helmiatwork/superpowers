@@ -57,6 +57,7 @@ Examples:
 - Staging branches are **temporary** — deleted after feature merges to main
 - Staging branches are created from `main` (or the project's base branch)
 - Feature branches are ALWAYS created from `main` — never from staging or other feature branches
+- **Never commit to parent branches (main/master)** — all commits must be on feature branches. Parent branches are only updated via merges and PRs.
 - **Staging only receives merges from feature branches** — no direct feature/fix commits on staging. All development happens on feature branches, then gets merged into staging.
 - **Exception: merge conflict resolution commits are allowed on staging** — when merging a feature branch into staging produces conflicts, resolve the conflict and commit the merge resolution on staging. This is the ONLY type of commit allowed on staging.
 - If staging tests fail, switch to the feature branch, fix there, push the feature branch, then re-merge into staging.
@@ -286,6 +287,7 @@ Normal completion flow:
 | Mistake | Fix |
 |---------|-----|
 | Creating feature branches from staging | Feature branches ALWAYS branch from main/master |
+| Committing to parent branches (main/master) | All commits must be on feature branches — parent branches only updated via merges/PRs |
 | Pushing directly to main/master | Always use PRs — never push directly |
 | Pushing parent branches (main/master/staging) to GitHub | Only push feature branches — parent branches are updated via PRs and merges only |
 | Mixing feature branch work with staging branch | Keep them completely separate — staging is for integration testing only |

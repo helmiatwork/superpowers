@@ -112,7 +112,7 @@ git commit -m "feat: add specific feature"
 - Reference relevant skills with @ syntax
 - **Reference TRDs** — if TRDs exist in Outline (API specs, migration plans, schemas), link them in the relevant tasks so @fixer executes from the TRD instead of making design decisions
 - DRY, YAGNI, TDD, frequent commits
-- **Branching:** Feature branches always from main/master — never from staging or other feature branches. Never push directly to main/master. Never push parent branches (main/master/staging) to GitHub — only feature branches may be pushed.
+- **Branching:** Feature branches always from main/master — never from staging or other feature branches. Never commit to parent branches (main/master) — all commits on feature branches only. Never push parent branches (main/master/staging) to GitHub — only feature branches may be pushed.
 - **Atomic commits:** Each commit = one logical context. Don't mix concerns. If the commit message needs "and", split it.
 - **Atomic PRs:** If implementation will touch 20+ files, plan for split PRs by domain/context. Each PR must be independently reviewable and mergeable.
 

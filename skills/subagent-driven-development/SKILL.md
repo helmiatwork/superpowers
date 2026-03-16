@@ -241,6 +241,7 @@ Done!
 
 **Never:**
 - Start implementation on main/master branch — always use a feature branch from main/master
+- Commit to parent branches (main/master) — all commits must be on feature branches
 - Push directly to main/master — always use PRs
 - Push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Branch from staging or other feature branches — always from main/master

@@ -200,6 +200,7 @@ Ready to implement auth feature
 
 **Never:**
 - Create feature branches from staging branches or other feature branches — always from main/master
+- Commit to parent branches (main/master) — all commits must be on feature branches
 - Push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Commit fixes to staging — staging only receives merges from feature branches (merge conflict resolutions are the only exception)
 - Create worktree without verifying it's ignored (project-local)

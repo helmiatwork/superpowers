@@ -61,6 +61,7 @@ After all tasks complete and verified:
 - Reference skills when plan says to
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch — always use a feature branch from main/master
+- Never commit to parent branches (main/master) — all commits must be on feature branches
 - Never push directly to main/master — always use PRs
 - Never push parent branches (main/master/staging) to GitHub — only feature branches may be pushed
 - Never branch from staging or other feature branches
