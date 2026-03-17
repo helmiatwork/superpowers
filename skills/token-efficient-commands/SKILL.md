@@ -19,7 +19,7 @@ Every CLI command MUST be prefixed with `rtk` for 60-90% token savings on output
 # Git
 rtk git status
 rtk git diff
-rtk git log --oneline -10
+rtk git log --oneline -1
 rtk git merge feature/xyz --no-edit
 rtk git cherry-pick <commit-hash>
 rtk git rebase main
@@ -106,7 +106,7 @@ Only these patterns are acceptable:
 
 ```bash
 # Short, safe, read-only pipes:
-rtk git log --oneline -5 | head -3
+rtk git log --oneline -1
 
 # Environment setup + single command:
 PORT=3002 rtk npm run dev
