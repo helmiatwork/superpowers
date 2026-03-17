@@ -80,6 +80,17 @@ Once all specific directories are mapped, create or update the root `codemap.md`
 2. **Aggregate Sub-Maps**: Create a "Repository Directory Map" section with responsibility summaries from each folder's `codemap.md`.
 3. **Cross-Reference**: Include paths to sub-maps so agents can jump directly to relevant details.
 
+### Step 5: Push to Outline
+
+After codemaps are generated, delegate to @librarian to push them to Outline for cross-session persistence:
+
+1. Search Outline for existing "{Project Name} - Codebase Map" collection
+2. If collection exists: update existing documents
+3. If collection doesn't exist: create it with the structure from `codebase-context` skill
+4. Push root codemap + key directory codemaps as separate Outline documents
+
+This ensures agents can load codebase context from Outline in future sessions (see `codebase-context` skill) even without local codemap files.
+
 ## Codemap Content
 
 Explorers should document each folder's `codemap.md` with:
