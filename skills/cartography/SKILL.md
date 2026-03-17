@@ -37,7 +37,7 @@ If it **doesn't exist**: Continue to Step 2 (Initialize).
 3. **Run cartographer.py init**:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py" init \
+rtk python3 "${CLAUDE_PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py" init \
   --root ./ \
   --include "src/**/*.ts" \
   --exclude "**/*.test.ts" --exclude "dist/**" --exclude "node_modules/**"
@@ -54,7 +54,7 @@ This creates:
 1. **Run cartographer.py changes** to see what changed:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py" changes \
+rtk python3 "${CLAUDE_PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py" changes \
   --root ./
 ```
 
@@ -68,7 +68,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py" chang
 4. **Run update** to save new state:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py" update \
+rtk python3 "${CLAUDE_PLUGIN_ROOT}/skills/cartography/scripts/cartographer.py" update \
   --root ./
 ```
 

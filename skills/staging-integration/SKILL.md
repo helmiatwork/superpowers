@@ -117,22 +117,22 @@ User merges manually (or approves agent to merge)
 
 ```bash
 # 1. Create staging branch
-git checkout main && git pull origin main
-git checkout -b staging/[feature-name]
+rtk git checkout main && rtk git pull origin main
+rtk git checkout -b staging/[feature-name]
 
 # 2. Merge each PR branch (preserve merge commits for traceability)
-git merge origin/[pr-branch-1] --no-ff -m "staging: merge [PR title 1]"
-git merge origin/[pr-branch-2] --no-ff -m "staging: merge [PR title 2]"
+rtk git merge origin/[pr-branch-1] --no-ff -m "staging: merge [PR title 1]"
+rtk git merge origin/[pr-branch-2] --no-ff -m "staging: merge [PR title 2]"
 
 # 3. Run tests
 [test command]
 
 # 4. Push staging for CI (if applicable — temporary, deleted after merge)
-git push -u origin staging/[feature-name]
+rtk git push -u origin staging/[feature-name]
 
 # 5. After user merges to main, cleanup
-git branch -d staging/[feature-name]
-git push origin --delete staging/[feature-name]
+rtk git branch -d staging/[feature-name]
+rtk git push origin --delete staging/[feature-name]
 ```
 
 ## Multi-Repo Flow (Frontend + Backend + Others)
