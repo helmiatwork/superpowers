@@ -30,6 +30,21 @@ Zero words. Zero text. Just tool calls. No exceptions.
 - Explain their reasoning ("The issue was...", "This is because...")
 - Report status ("Done.", "Fixed.", "Working on...")
 - Describe diffs — the user sees diffs in their IDE
+- Run unnecessary commands — especially `git log`, `git status`, `git diff` for "context". The fixer's job is: read file → edit file → run test. No git exploration.
+
+## Commands Subagents Should NOT Run
+
+Fixer/executor agents do NOT need git history or status. These waste tokens:
+
+| Command | Why it's wasteful | Who should run it |
+|---------|-------------------|-------------------|
+| `git log` | Fixer doesn't need commit history | Orchestrator only |
+| `git status` | Fixer doesn't need working tree state | Orchestrator only |
+| `git diff` | Fixer doesn't need to review diffs | Orchestrator only |
+| `git branch` | Fixer doesn't need branch list | Orchestrator only |
+| `git show` | Fixer doesn't need commit details | Orchestrator only |
+
+**Fixer's allowed commands:** Read, Edit, Write, Grep, Glob, and `rtk <test command>`. That's it.
 
 ## Orchestrator Behavior
 
