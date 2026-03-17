@@ -151,6 +151,7 @@ Never power through errors hoping the chain will work out.
 | `git merge` without `-q` | Full file list dumped | Add `-q` or use `rtk` |
 | `bin/rails db:migrate` (no rtk) | Deprecation warnings, init logs flood output | `rtk bin/rails db:migrate` |
 | `bundle exec rails runner ... 2>&1 \| tail` | Still dumps full stack traces | `rtk bundle exec rails runner ...` |
+| `rtk <cmd> 2>&1 \| head -20` or `\| tail -20` | Pipe defeats rtk compression — rtk already strips noise | `rtk <cmd>` (no pipes) |
 | Any `rails` or `bundle exec` without rtk | Verbose Ruby output wastes tokens | Always prefix with `rtk` |
 | `python manage.py migrate` (no rtk) | Verbose migration output | `rtk python manage.py migrate` |
 | `pip install` (no rtk) | Package download noise | `rtk pip install -r requirements.txt` |
