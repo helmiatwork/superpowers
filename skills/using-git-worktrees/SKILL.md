@@ -56,7 +56,7 @@ Which would you prefer?
 
 ```bash
 # Check if directory is ignored (respects local, global, and system gitignore)
-git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/dev/null
+rtk git check-ignore -q .worktrees 2>/dev/null || rtk git check-ignore -q worktrees 2>/dev/null
 ```
 
 **If NOT ignored:**
@@ -98,8 +98,8 @@ case $LOCATION in
 esac
 
 # Ensure we branch from latest main/master
-git fetch origin
-git worktree add "$path" -b "$BRANCH_NAME" origin/main
+rtk git fetch origin
+rtk git worktree add "$path" -b "$BRANCH_NAME" origin/main
 cd "$path"
 ```
 
@@ -109,17 +109,17 @@ Auto-detect and run appropriate setup:
 
 ```bash
 # Node.js
-if [ -f package.json ]; then npm install; fi
+if [ -f package.json ]; then rtk npm install; fi
 
 # Rust
-if [ -f Cargo.toml ]; then cargo build; fi
+if [ -f Cargo.toml ]; then rtk cargo build; fi
 
 # Python
-if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-if [ -f pyproject.toml ]; then poetry install; fi
+if [ -f requirements.txt ]; then rtk pip install -r requirements.txt; fi
+if [ -f pyproject.toml ]; then rtk poetry install; fi
 
 # Go
-if [ -f go.mod ]; then go mod download; fi
+if [ -f go.mod ]; then rtk go mod download; fi
 ```
 
 ### 4. Verify Clean Baseline
@@ -128,10 +128,10 @@ Run tests to ensure worktree starts clean:
 
 ```bash
 # Examples - use project-appropriate command
-npm test
-cargo test
-pytest
-go test ./...
+rtk npm test
+rtk cargo test
+rtk pytest
+rtk go test ./...
 ```
 
 **If tests fail:** Report failures, ask whether to proceed or investigate.

@@ -21,7 +21,7 @@ Guide completion of development work by presenting clear options and handling ch
 
 ```bash
 # Run project's test suite
-npm test / cargo test / pytest / go test ./...
+rtk npm test / rtk cargo test / rtk pytest / rtk go test ./...
 ```
 
 **If tests fail:**
@@ -41,7 +41,7 @@ Stop. Don't proceed to Step 2.
 
 ```bash
 # Try common base branches
-git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
+rtk git merge-base HEAD main 2>/dev/null || rtk git merge-base HEAD master 2>/dev/null
 ```
 
 Or ask: "This branch split from main - is that correct?"
@@ -69,19 +69,19 @@ Which option?
 
 ```bash
 # Switch to base branch
-git checkout <base-branch>
+rtk git checkout <base-branch>
 
 # Pull latest
-git pull
+rtk git pull
 
 # Merge feature branch
-git merge <feature-branch>
+rtk git merge <feature-branch>
 
 # Verify tests on merged result
-<test command>
+rtk <test command>
 
 # If tests pass
-git branch -d <feature-branch>
+rtk git branch -d <feature-branch>
 ```
 
 Then: Cleanup worktree (Step 5)
@@ -91,7 +91,7 @@ Then: Cleanup worktree (Step 5)
 **Before pushing, check file count:**
 ```bash
 # Count changed files against base branch
-git diff --name-only <base-branch>...HEAD | wc -l
+rtk git diff --name-only <base-branch>...HEAD | wc -l
 ```
 
 **If > 20 files:** STOP. Split into multiple PRs by domain/context before pushing. Each PR must be independently reviewable and mergeable. Group by: backend API, frontend UI, database, shared types, tests, config. Document merge order if PRs depend on each other.
@@ -100,10 +100,10 @@ git diff --name-only <base-branch>...HEAD | wc -l
 
 ```bash
 # Push branch
-git push -u origin <feature-branch>
+rtk git push -u origin <feature-branch>
 
 # Create PR
-gh pr create --title "<title>" --body "$(cat <<'EOF'
+rtk gh pr create --title "<title>" --body "$(cat <<'EOF'
 ## Summary
 <2-3 bullets of what changed>
 
@@ -139,8 +139,8 @@ Wait for exact confirmation.
 
 If confirmed:
 ```bash
-git checkout <base-branch>
-git branch -D <feature-branch>
+rtk git checkout <base-branch>
+rtk git branch -D <feature-branch>
 ```
 
 Then: Cleanup worktree (Step 5)
@@ -151,12 +151,12 @@ Then: Cleanup worktree (Step 5)
 
 Check if in worktree:
 ```bash
-git worktree list | grep $(git branch --show-current)
+rtk git worktree list | grep $(git branch --show-current)
 ```
 
 If yes:
 ```bash
-git worktree remove <worktree-path>
+rtk git worktree remove <worktree-path>
 ```
 
 **For Option 3:** Keep worktree.
