@@ -28,16 +28,18 @@ rtk git push
 rtk git stash
 rtk git branch -a
 
-# Rails / Ruby
+# Rails / Ruby — ALWAYS use rtk, never pipe through tail/head to truncate
 rtk bin/rails db:migrate
 rtk bin/rails db:seed
 rtk bin/rails routes
 rtk bin/rails test
 rtk bin/rails console
 rtk bin/rails server
+rtk bin/rails runner "load 'path/to/script.rb'"
 rtk bundle install
 rtk bundle exec rspec
 rtk bundle exec rake
+rtk bundle exec rails runner "SomeTask.run"
 
 # npm / Node
 rtk npm install
@@ -72,7 +74,8 @@ RTK (Rust Token Killer) compresses CLI output by 60-90%, stripping noise like:
 - File-by-file diff stats from git merge
 - Package update banners (refine, npm, yarn)
 - Verbose build output
-- Rails deprecation warnings, Sentry init logs, autoload notices
+- Rails deprecation warnings, Sentry init logs, autoload notices, full stack traces
+- Ruby/Rails runner verbose output, seed file logging
 - Docker/kubectl table formatting bloat
 - ANSI color codes and decorative borders
 
@@ -147,6 +150,8 @@ Never power through errors hoping the chain will work out.
 | Continuing after `CONFLICT` | Broken state, wasted work | Stop and resolve |
 | `git merge` without `-q` | Full file list dumped | Add `-q` or use `rtk` |
 | `bin/rails db:migrate` (no rtk) | Deprecation warnings, init logs flood output | `rtk bin/rails db:migrate` |
+| `bundle exec rails runner ... 2>&1 \| tail` | Still dumps full stack traces | `rtk bundle exec rails runner ...` |
+| Any `rails` or `bundle exec` without rtk | Verbose Ruby output wastes tokens | Always prefix with `rtk` |
 | `python manage.py migrate` (no rtk) | Verbose migration output | `rtk python manage.py migrate` |
 | `pip install` (no rtk) | Package download noise | `rtk pip install -r requirements.txt` |
 
