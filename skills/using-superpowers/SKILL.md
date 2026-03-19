@@ -54,10 +54,14 @@ Session Boot:
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:workflow-guide:      ✅ loaded (X,XXX chars, ~X,XXX tokens)
   Project:                ✅ [project-name]
-  Knowledge:              ✅ loaded (X,XXX chars) — [N] required docs, [N] reference docs
-    Required:             ✅ [doc title] (type)
-                          ✅ [doc title] (type)
+  Knowledge:              ✅ loaded (X,XXX chars)
+    Docs:                 [N] required (loaded), [N] reference (on-demand)
+    Business rules:       [N] rules loaded
+    API gotchas:          [N] gotchas loaded
+    Data model:           [N] relationships, [N] key fields
+    Known issues:         [N] issues loaded
     Features:             [N] features ([N] in-progress, [N] planned)
+    UI patterns:          ✅ loaded
   Last session:           ✅ [date] — [what was done] or ⬜ first session
   Next action:            ✅ [specific next step] or ⬜ none
   Task board:             ✅ X tasks (Y done, Z in-progress, W pending) or ⬜ none
@@ -113,21 +117,43 @@ After reading `ai:knowledge:{project}`, the orchestrator MUST:
 ```json
 {
   "project": "ichigo-admin",
+  "description": "Internal admin panel for Ichigo platform",
+  "stack": "React 18 + Refine v4 + Mantine v5 + Apollo Client",
+  "api": "GraphQL, auth via X-Auth-Token (JWT)",
   "outline_collection": "dc175c88",
+
   "docs": {
-    "required": [
-      {"id": "ab543398", "title": "TRD", "type": "trd", "covers": "Full technical spec"},
-      {"id": "86584564", "title": "API Contract", "type": "api", "covers": "All endpoints"}
-    ],
-    "reference": [
-      {"id": "d45b32f6", "title": "PR Plan", "type": "plan", "covers": "PR strategy"}
-    ]
+    "required": [{"id": "...", "title": "TRD", "type": "trd", "load": "full"}],
+    "reference": [{"id": "...", "title": "PR Plan", "type": "plan", "load": "on-demand"}]
   },
+  "business_rules": ["Curated lists: Draft → Sourcing → Ready → Complete", "..."],
+  "api_gotchas": ["Auth in X-Auth-Token, NOT Authorization Bearer", "..."],
+  "data_model": {
+    "key_relationships": ["Brand has_many Campaigns, CuratedLists", "..."],
+    "important_fields": ["Creator.status: active/inactive/blacklisted", "..."]
+  },
+  "environment": {"api_url": "REACT_APP_CP_API_URL", "auth_token": "REACT_APP_CP_API_TOKEN"},
+  "known_issues": ["Mantine v5 only — NOT v7", "Apollo cache can serve stale data after mutations"],
+  "external_services": [{"name": "Customer Portal API", "url": "localhost:3007"}],
+  "ui_patterns": {"list_views": "useList + TanStack Table", "show_views": "useShow + DetailsCard"},
+  "testing_patterns": {"mocking": "MockedProvider, not jest.mock"},
   "features": {
-    "creators": {"trd_section": "Creators", "api_section": "Creator endpoints", "status": "in-progress"},
-    "curated-lists": {"trd_section": "Curated Lists", "api_section": "CuratedList endpoints", "status": "in-progress"}
+    "creators": {"trd_section": "Creators", "api_section": "Creator endpoints", "status": "in-progress", "depends_on": []},
+    "proposals": {"trd_section": "Proposals", "status": "planned", "depends_on": ["creators", "campaigns"]}
   }
 }
+```
+
+**Every section has a purpose:**
+
+| Section | Prevents |
+|---|---|
+| `business_rules` | AI inventing wrong business logic |
+| `api_gotchas` | AI using wrong auth header, wrong error format |
+| `data_model` | AI guessing wrong relationships between entities |
+| `known_issues` | AI using Mantine v7 APIs, stale cache bugs |
+| `ui_patterns` | AI inventing new patterns instead of following existing ones |
+| `features.depends_on` | AI building proposals before creators exist |
 ```
 
 ### When user asks to work on a feature:
