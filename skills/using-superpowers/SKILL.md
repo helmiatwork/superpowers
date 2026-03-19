@@ -47,6 +47,12 @@ Session Boot:
   Project:                ✅ [project-name]
   Last session:           ✅ [date] — [what was done] or ⬜ first session
   Next action:            ✅ [specific next step] or ⬜ none
+  Agent history:
+    fixer:                [last action summary or —]
+    oracle:               [last action summary or —]
+    designer:             [last action summary or —]
+    explorer:             [last action summary or —]
+    librarian:            [last action summary or —]
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
 Agents:
@@ -309,12 +315,35 @@ When design is approved, create TRDs BEFORE delegating to @fixer:
 Detect project name and save state:
 ```bash
 PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
-redis-cli SET "ai:state:$PROJECT" '{"phase":"...","task":"...","last_session":"YYYY-MM-DD","next_action":"[SPECIFIC — what to do first next session]","decisions":["..."],"blockers":"none or description"}'
+redis-cli SET "ai:state:$PROJECT" '<json>'
 ```
 
-**The `next_action` must be specific enough for a fresh AI to resume instantly:**
-- Bad: "Continue working on orders"
-- Good: "Implement PATCH /v1/orders/:id per API TRD section Orders. GET and POST endpoints done and tested."
+**State JSON structure:**
+```json
+{
+  "phase": "Sprint 2",
+  "task": "implementing order API",
+  "last_session": "2026-03-19",
+  "next_action": "Implement PATCH /v1/orders/:id per API TRD. GET and POST done.",
+  "decisions": ["Using Sidekiq for async", "PostgreSQL jsonb for metadata"],
+  "blockers": "none",
+  "agents": {
+    "fixer": "Completed GET/POST endpoints + tests. 3/5 tasks done. Remaining: PATCH, DELETE.",
+    "oracle": "Reviewed GET/POST — APPROVED. Flagged: add rate limiting before launch.",
+    "designer": "N/A this session",
+    "explorer": "Mapped api/v1/ structure. Found 8 controllers, 3 shared concerns.",
+    "librarian": "Updated API TRD with GET/POST response examples."
+  }
+}
+```
+
+**Rules:**
+- `next_action` must be specific enough for a fresh AI to resume instantly
+- `agents` section: one line per agent summarizing what they did (or "N/A this session")
+- Only include agents that were active — skip inactive ones
+
+**Bad next_action:** "Continue working on orders"
+**Good next_action:** "Implement PATCH /v1/orders/:id per API TRD section Orders. GET and POST done and tested."
 
 ### 2. Update Project Tracker in Outline
 
