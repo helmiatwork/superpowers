@@ -201,6 +201,49 @@ You are a coordinator. Your ONLY outputs are:
 
 **There is ZERO code or document work the orchestrator does directly. Not "just one line." Not "a quick fix." Not "a simple doc update." ALWAYS delegate.**
 
+## REDIS-BEFORE-HANDOFF — EVERY AGENT, EVERY TIME
+
+**No agent passes work to another agent without updating Redis first.** This is the crash-protection guarantee.
+
+```
+RULE: Update Redis BEFORE every handoff. No exceptions.
+
+Orchestrator → Fixer:
+  1. Orchestrator plans the work
+  2. Orchestrator creates/updates task board in Redis ← SAVE HERE
+  3. Orchestrator dispatches Fixer
+
+Fixer → Orchestrator (done):
+  1. Fixer completes each step, updates Redis after EACH ← SAVE HERE
+  2. Fixer finishes all steps
+  3. Fixer sets status to "review", saves Redis ← SAVE HERE
+  4. Fixer reports to Orchestrator
+
+Orchestrator → Oracle (review):
+  1. Orchestrator receives Fixer report
+  2. Orchestrator updates task board (Fixer done, Oracle review pending) ← SAVE HERE
+  3. Orchestrator dispatches Oracle
+
+Oracle → Orchestrator (review result):
+  1. Oracle reviews code
+  2. Oracle writes review result to task board ← SAVE HERE
+  3. Oracle reports to Orchestrator
+
+Orchestrator → Fixer (fixes needed):
+  1. Orchestrator receives Oracle review
+  2. Orchestrator creates fix checklist in task board ← SAVE HERE
+  3. Orchestrator dispatches Fixer with fixes
+
+Fixer → Orchestrator (fixes done):
+  1. Fixer completes each fix, updates Redis after EACH ← SAVE HERE
+  2. Fixer sets status to "review" ← SAVE HERE
+  3. Fixer reports to Orchestrator
+```
+
+**The pattern:** DO THE WORK → SAVE TO REDIS → THEN HAND OFF.
+
+**Never:** Do the work → hand off → forget to save. If session crashes between "hand off" and "save", the work is lost.
+
 6. **ASSESS** — Is there a relevant specialist? (Answer: YES. There always is.)
 7. **PRESENT EXECUTIVE SUMMARY** - Before dispatching agents:
    - **Objective:** What will be accomplished
@@ -271,7 +314,7 @@ RULES — follow these exactly:
 9. Prefix ALL CLI commands with rtk (e.g., rtk npm test, rtk git status).
 10. Zero text output — only tool calls. No narration, no summaries, no diffs.
 11. Report: Status (DONE/BLOCKED) + test count only. Nothing else.
-12. **UPDATE REDIS AFTER EVERY COMPLETED STEP.** Run: redis-cli SET "ai:tasks:$PROJECT" '<updated json with this step marked done>'. This is NON-NEGOTIABLE — if session crashes, the next session must know exactly where you stopped.
+12. **UPDATE REDIS BEFORE EVERY HANDOFF AND AFTER EVERY STEP.** Run: redis-cli SET "ai:tasks:$PROJECT" '<updated json>'. Save BEFORE reporting to orchestrator. Save AFTER each completed step. This is NON-NEGOTIABLE — if session crashes between steps or during handoff, the next session must know exactly where you stopped.
 ```
 
 Omit rules that don't apply (e.g., skip TDD rule for @librarian writing docs, skip UI states for @explorer).
