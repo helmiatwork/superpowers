@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""AI Session Boot — outputs ready-to-print checklist from Redis."""
+import json, subprocess, sys
+
+def redis(cmd):
+    r = subprocess.run(["redis-cli"] + cmd.split(), capture_output=True, text=True)
+    return r.stdout.strip()
+
+def strlen(key):
+    return int(redis(f"STRLEN {key}") or 0)
+
+def get(key):
+    return redis(f"GET {key}")
+
+def tokens(chars):
+    return int(chars / 4)
+
+# 0. Redis check
+if redis("ping") != "PONG":
+    subprocess.run(["brew", "services", "start", "redis"], capture_output=True)
+    import time; time.sleep(2)
+    if redis("ping") != "PONG":
+        print("  Redis:                  ❌ not running")
+        sys.exit(1)
+
+# 1. Get sizes (don't read large keys)
+sizes = {
+    "ai:strategy": strlen("ai:strategy"),
+    "ai:execution-protocol": strlen("ai:execution-protocol"),
+    "ai:templates:index": strlen("ai:templates:index"),
+    "ai:agent-config": strlen("ai:agent-config"),
+    "ai:workflow-guide": strlen("ai:workflow-guide"),
+}
+
+# 2. Detect project
+r = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+project = r.stdout.strip().split("/")[-1] if r.returncode == 0 else "unknown"
+
+# 3. Read small keys
+knowledge_raw = get(f"ai:knowledge:{project}")
+state_raw = get(f"ai:state:{project}")
+tasks_raw = get(f"ai:tasks:{project}")
+config_raw = get("ai:agent-config")
+features_raw = get("ai:feature:*") or ""
+
+# 4. Parse
+knowledge = json.loads(knowledge_raw) if knowledge_raw else {}
+state = json.loads(state_raw) if state_raw else {}
+tasks = json.loads(tasks_raw) if tasks_raw else {}
+config = json.loads(config_raw) if config_raw else {}
+
+# 5. Build checklist
+out = []
+out.append("Session Boot:")
+for key, size in sizes.items():
+    name = key.replace("ai:", "")
+    status = "✅" if size > 0 else "❌"
+    out.append(f"  {name+':':26} {status} loaded ({size:,} chars, ~{tokens(size):,} tokens)")
+
+out.append(f"  {'Project:':26} ✅ {project}")
+
+# Knowledge summary
+if knowledge:
+    req = len(knowledge.get("docs", {}).get("required", []))
+    ref = len(knowledge.get("docs", {}).get("reference", []))
+    rules = len(knowledge.get("business_rules", []))
+    gotchas = len(knowledge.get("api_gotchas", []))
+    issues = len(knowledge.get("known_issues", []))
+    feats = len(knowledge.get("features", {}))
+    patterns = len(knowledge.get("ui_patterns", {}))
+    stack = knowledge.get("stack", "—")
+    out.append(f"  {'Knowledge:':26} ✅ loaded")
+    out.append(f"    {'Stack:':24} {stack}")
+    out.append(f"    {'Docs:':24} {req} required, {ref} reference")
+    out.append(f"    {'Rules/Gotchas/Issues:':24} {rules} rules, {gotchas} gotchas, {issues} issues")
+    out.append(f"    {'Features:':24} {feats} features")
+    out.append(f"    {'UI patterns:':24} {patterns} patterns")
+else:
+    out.append(f"  {'Knowledge:':26} ⬜ none")
+
+# State summary
+if state:
+    last = state.get("last_session", "—")
+    task = state.get("task", "—")
+    next_act = state.get("next_action", "—")
+    out.append(f"  {'Last session:':26} ✅ {last} — {task}")
+    out.append(f"  {'Next action:':26} ✅ {next_act[:80]}")
+else:
+    out.append(f"  {'Last session:':26} ⬜ first session")
+
+# Task board summary
+if tasks and tasks.get("features"):
+    feats = tasks["features"]
+    total = len(feats)
+    done = sum(1 for f in feats if f["status"] == "done")
+    ip = sum(1 for f in feats if f["status"] == "in-progress")
+    pend = sum(1 for f in feats if f["status"] == "pending")
+    out.append(f"  {'Task board:':26} ✅ {total} features ({done} done, {ip} in-progress, {pend} pending)")
+    for f in feats:
+        if f["status"] == "in-progress":
+            subs = f["subtasks"]
+            done_s = sum(1 for s in subs if s["status"] == "done")
+            out.append(f"    {f['id']}. {f['name'][:30]:30} 🔄 {done_s}/{len(subs)} sub-tasks done")
+            for s in subs:
+                if s["status"] == "in-progress":
+                    steps = s["checklist"]
+                    done_st = sum(1 for c in steps if c["done"])
+                    next_st = next((c["step"] for c in steps if not c["done"]), "?")
+                    out.append(f"       {s['id']}. {s['agent']:10} 🔄 {s['goal'][:40]} — step {done_st}/{len(steps)}")
+                elif s["status"] == "pending":
+                    deps = s.get("depends_on", [])
+                    dep_str = f" (waiting: {','.join(deps)})" if deps else ""
+                    out.append(f"       {s['id']}. {s['agent']:10} ⬜ {s['goal'][:40]}{dep_str}")
+        elif f["status"] == "done":
+            out.append(f"    {f['id']}. {f['name'][:30]:30} ✅ done")
+        else:
+            out.append(f"    {f['id']}. {f['name'][:30]:30} ⬜ pending")
+else:
+    out.append(f"  {'Task board:':26} ⬜ none")
+
+# Cross-repo features
+feature_keys = [k for k in redis("KEYS ai:feature:*").split("\n") if k.strip()]
+if feature_keys:
+    for fk in feature_keys:
+        name = fk.replace("ai:feature:", "")
+        out.append(f"  {'Cross-repo:':26} ✅ {name}")
+else:
+    out.append(f"  {'Cross-repo:':26} ⬜ none")
+
+# Agent table
+if config and config.get("presets"):
+    preset = config.get("preset", "dynamic")
+    agents_cfg = config["presets"].get(preset, {})
+    agents_state = state.get("agents", {})
+    out.append("")
+    out.append("Agents:")
+    out.append(f"  {'Agent':<14} {'Model':<12} {'Skills':<36} {'Last':<30} {'Next'}")
+    for name in ["orchestrator", "oracle", "librarian", "explorer", "designer", "fixer"]:
+        a = agents_cfg.get(name, {})
+        model = a.get("model", "—").replace("anthropic/claude-", "")
+        skills = ", ".join(a.get("skills", [])) or "—"
+        ag_state = agents_state.get(name, {})
+        if isinstance(ag_state, dict):
+            last = ag_state.get("last", "—")[:28]
+            nxt = ag_state.get("next", "—")[:28]
+        else:
+            last = str(ag_state)[:28]
+            nxt = "—"
+        out.append(f"  {name:<14} {model:<12} {skills:<36} {last:<30} {nxt}")
+
+# Boot cost — count actual output tokens, not Redis sizes
+output_text = "\n".join(out)
+output_tokens = len(output_text.split()) * 13 // 10
+redis_total = sum(tokens(v) for v in sizes.values())
+print(output_text)
+print(f"\nBoot cost: ~{output_tokens:,} tokens (output only) | Redis stores: ~{redis_total:,} tokens (not loaded)")
