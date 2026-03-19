@@ -1,0 +1,62 @@
+{
+  "preset": "dynamic",
+  "presets": {
+    "dynamic": {
+      "orchestrator": {
+        "model": "anthropic/claude-opus-4-6",
+        "variant": "low",
+        "skills": ["*"],
+        "mcps": ["websearch", "outline"]
+      },
+      "oracle": {
+        "model": "anthropic/claude-opus-4-6",
+        "variant": "low",
+        "skills": ["code-reviewer"],
+        "mcps": []
+      },
+      "librarian": {
+        "model": "anthropic/claude-sonnet-4-6",
+        "variant": "low",
+        "skills": [],
+        "mcps": ["websearch", "context7", "grep_app", "outline"]
+      },
+      "explorer": {
+        "model": "anthropic/claude-haiku-4-5",
+        "variant": "low",
+        "skills": [],
+        "mcps": []
+      },
+      "designer": {
+        "model": "anthropic/claude-sonnet-4-6",
+        "variant": "low",
+        "skills": ["agent-browser", "ui-design-system"],
+        "mcps": ["opencode-browser"]
+      },
+      "fixer": {
+        "model": "anthropic/claude-haiku-4-5",
+        "variant": "low",
+        "skills": ["senior-fullstack"],
+        "mcps": []
+      }
+    }
+  },
+  "balanceProviderUsage": true,
+  "fallback": {
+    "enabled": true,
+    "timeoutMs": 15000,
+    "chains": {
+      "oracle": ["anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"],
+      "orchestrator": [
+        "anthropic/claude-opus-4-6",
+        "anthropic/claude-sonnet-4-6"
+      ],
+      "fixer": ["anthropic/claude-haiku-4-5", "anthropic/claude-sonnet-4-6"],
+      "designer": ["anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"],
+      "librarian": [
+        "anthropic/claude-sonnet-4-6",
+        "anthropic/claude-haiku-4-5"
+      ],
+      "explorer": ["anthropic/claude-haiku-4-5", "anthropic/claude-sonnet-4-6"]
+    }
+  }
+}
