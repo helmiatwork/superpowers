@@ -1,0 +1,23 @@
+Project Templates Collection (Outline ID: )
+
+Documents:
+- AI Project Execution Protocol (2149642d)
+- Phase 0 — Discovery & Validation (292eac94)
+- Phase 0.5 — Stack Selection Guide (b6df7ca7)
+- Phase 1 — PRD (Product Requirements Document) (bb6e62ac)
+- Phase 1.5 — Design Spec (2e10c34d)
+- Phase 1.5 — Domain Model (dde37839)
+- Phase 2 — Data Governance & Privacy (18a95a7d)
+- Phase 2 — Security Design Review (49b7e7f8)
+- Phase 2 — TRD: API Specification (6d93482f)
+- Phase 2 — TRD: Architecture (dfb6de39)
+- Phase 2 — TRD: Data Model (ad4acf9e)
+- Phase 2 — TRD: Infrastructure (b04d992f)
+- Phase 2 — Testing Strategy (ed1ab76c)
+- Phase 3 — Analytics & Experimentation Plan (dd0f29c1)
+- Phase 3 — Sprint Plan & Work Breakdown (5fe62105)
+- Phase 5 — API Changelog & Deprecation Policy (dd9b8ce2)
+- Phase 6 — Launch Checklist (1a8976a3)
+- Phase 6.5 — Operational Readiness (4f390d3c)
+- Phase 7 — Post-Launch Review (022ee47c)
+
