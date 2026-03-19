@@ -50,11 +50,17 @@ Session Boot:
   Next action:            ✅ [specific next step] or ⬜ none
   Task board:             ✅ X tasks (Y done, Z in-progress, W pending) or ⬜ none
     #N agent:             ✅ done / 🔄 step X/Y (step name) / ⬜ pending / ❌ blocked
-  Agent history:
-    fixer:                [last action summary or —]
-    oracle:               [last action summary or —]
-    designer:             [last action summary or —]
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
+
+Agents:
+| Agent        | Model      | Skills                             | Last checkpoint              | Next                              |
+|--------------|------------|------------------------------------|------------------------------|-----------------------------------|
+| orchestrator | opus-4-6   | [*]                                | [last action or —]           | [next action or —]                |
+| oracle       | opus-4-6   | code-reviewer                      | [last review result or —]    | [pending review or —]             |
+| librarian    | sonnet-4-6 | —                                  | [last doc updated or —]      | [pending doc work or —]           |
+| explorer     | haiku-4-5  | —                                  | [last exploration or —]      | [pending exploration or —]        |
+| designer     | sonnet-4-6 | agent-browser, ui-design-system    | [last design work or —]      | [pending design or —]             |
+| fixer        | haiku-4-5  | senior-fullstack                   | [last implementation or —]   | [next task or —]                  |
 
 Agents:
   orchestrator:  opus-4-6   | skills: [*]                              | mcps: websearch, outline
@@ -530,10 +536,12 @@ redis-cli SET "ai:state:$PROJECT" '<updated state JSON>'
   "decisions": ["Using Sidekiq for async", "PostgreSQL jsonb for metadata"],
   "blockers": "none",
   "agents": {
-    "fixer": "Completed task #1 (POST). Task #2 in progress — CODEMAP + TRD read, tests next.",
-    "oracle": "Reviewed task #1 — APPROVED. Flagged: add rate limiting.",
-    "explorer": "Mapped api/v1/ structure.",
-    "librarian": "Updated API TRD."
+    "orchestrator": {"last": "Delegated task #1 and #2 to fixer", "next": "Dispatch fixer for task #2 remaining steps"},
+    "fixer":        {"last": "Completed task #1 (POST). Task #2: CODEMAP + TRD read done", "next": "Task #2: write tests, implement PATCH"},
+    "oracle":       {"last": "Reviewed task #1 — APPROVED. Flagged: add rate limiting", "next": "Review task #2 when fixer completes"},
+    "designer":     {"last": "—", "next": "—"},
+    "explorer":     {"last": "Mapped api/v1/ structure", "next": "—"},
+    "librarian":    {"last": "Updated API TRD", "next": "Update TRD after PATCH done"}
   }
 }
 ```
