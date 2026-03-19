@@ -271,6 +271,7 @@ RULES — follow these exactly:
 9. Prefix ALL CLI commands with rtk (e.g., rtk npm test, rtk git status).
 10. Zero text output — only tool calls. No narration, no summaries, no diffs.
 11. Report: Status (DONE/BLOCKED) + test count only. Nothing else.
+12. **UPDATE REDIS AFTER EVERY COMPLETED STEP.** Run: redis-cli SET "ai:tasks:$PROJECT" '<updated json with this step marked done>'. This is NON-NEGOTIABLE — if session crashes, the next session must know exactly where you stopped.
 ```
 
 Omit rules that don't apply (e.g., skip TDD rule for @librarian writing docs, skip UI states for @explorer).
@@ -562,10 +563,13 @@ TASK BOARD: redis-cli GET ai:tasks:{project}
 YOUR TASK: #{id} — {goal}
 RULES:
 - Read the task board first
-- Create your own checklist of steps before starting
-- Save checklist to Redis: redis-cli SET ai:tasks:{project} '<updated json>'
-- After EACH step: update that step to done, save to Redis
-- When all done: set status to "review"
+- Create your own checklist of concrete steps before starting
+- Save checklist to Redis BEFORE starting work: redis-cli SET ai:tasks:{project} '<json>'
+- ⚠️ AFTER EVERY SINGLE COMPLETED STEP: update that step to done:true and save to Redis IMMEDIATELY
+  → Do NOT batch updates. Do NOT wait until the end. Save after EACH step.
+  → This protects against crashes — next session resumes at exact step.
+- When all steps done: set status to "review"
+- After oracle review: if fix-needed, create fix checklist, save to Redis, work through fixes
 ```
 
 ### The Review Loop
