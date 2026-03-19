@@ -279,7 +279,7 @@ Normal completion flow:
 | **Orchestrator** | Detects multi-PR/multi-repo, triggers this skill |
 | **@fixer** | Creates staging branches, merges PRs, runs tests, fixes issues |
 | **@oracle** | Reviews merge conflict resolutions, informs user of results |
-| **@librarian** | Updates Outline with integration status, saves state to supermemory |
+| **@librarian** | Updates Outline with integration status and Project Tracker |
 | **@explorer** | Reads codemaps to identify affected code paths for regression scope |
 
 ## Common Mistakes

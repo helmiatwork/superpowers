@@ -20,8 +20,7 @@ Run these checks and **print the checklist to the user** before doing anything e
 3. redis-cli GET ai:templates:index → load or fetch from Outline if empty
 4. redis-cli GET ai:agent-config → agent models, skills, MCPs
 5. redis-cli GET ai:workflow-guide → orchestrator delegation + review workflow
-6. Check supermemory for last session state
-7. Check Outline for Project Tracker (if active project)
+6. Check Outline for Project Tracker (if active project)
 ```
 
 **After all checks, load agent config from Redis:**
@@ -44,9 +43,9 @@ Session Boot:
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
 Agents:
-  orchestrator:  opus-4-6   | skills: [*]                              | mcps: websearch, outline, supermemory
+  orchestrator:  opus-4-6   | skills: [*]                              | mcps: websearch, outline
   oracle:        opus-4-6   | skills: code-reviewer                    | mcps: —
-  librarian:     sonnet-4-6 | skills: —                                | mcps: websearch, context7, grep_app, outline, supermemory
+  librarian:     sonnet-4-6 | skills: —                                | mcps: websearch, context7, grep_app, outline
   explorer:      haiku-4-5  | skills: —                                | mcps: —
   designer:      sonnet-4-6 | skills: agent-browser, ui-design-system  | mcps: opencode-browser
   fixer:         haiku-4-5  | skills: senior-fullstack                 | mcps: —
@@ -289,7 +288,7 @@ When design is approved, create TRDs BEFORE delegating to @fixer:
 4. **Scope control** — Specify exact files. Read codemaps first, never scan entire directories.
 5. **Context management** — Fresh sessions for new tasks. Supermemory for continuity.
 6. **Redis caching** — AI Strategy, Execution Protocol, templates index, and agent config cached in Redis. No TTL (persists forever). Always read Redis first (~1ms), fallback to Outline (~500ms).
-7. **Supermemory caching** — Check supermemory before dispatching research. Target >60% cache hits.
+7. **Redis caching for research** — Before dispatching @librarian for research, check if the answer is already in Redis or Outline.
 8. **Batch processing** — Parallel agent dispatch for independent tasks.
 
 **Codemap-First Rule:** Every folder has `CODEMAP.md`. Read it before exploring. Never glob all files when a codemap exists. No codemap? Check Outline, then run `cartography`.
@@ -298,7 +297,7 @@ When design is approved, create TRDs BEFORE delegating to @fixer:
 
 Delegate all persistence to @librarian:
 
-1. **Save to supermemory (MANDATORY)** — What was done, progress, decisions, next steps
+1. **Update Project Tracker in Outline (MANDATORY)** — What was done, progress, decisions, next steps
 2. **Feature complete?** → @fixer creates PR → @fixer requests review from @oracle → staging-integration if multi-PR → @librarian updates Outline checklist → @librarian saves final state
 
 ## BRANCHING RULES — NON-NEGOTIABLE
