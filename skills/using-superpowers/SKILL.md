@@ -313,30 +313,56 @@ When design is approved, create TRDs BEFORE delegating to @fixer:
 
 The orchestrator maintains a **task board** in Redis at `ai:tasks:{project}`. This is the real-time state of all agent work. If the session crashes (internet, power, computer), the next session reads the task board and resumes at the exact step that was interrupted.
 
-### Lifecycle
+### Lifecycle — Agents Own Their Checklists
 
 ```
-Orchestrator plans work
+Orchestrator delegates task to @fixer
   ↓
-Creates task board in Redis (ai:tasks:{project})
-  → Each task has: agent, goal, status, files, checklist
+@fixer analyzes the task, creates its OWN checklist:
+  redis-cli SET "ai:tasks:{project}" → adds checklist items:
+    ⬜ Update database schema
+    ⬜ Update API endpoint
+    ⬜ Update UI component
+    ⬜ Add action button
+    ⬜ Write tests
+    ⬜ Build + lint passes
   ↓
-Before dispatching agent:
-  → Set task status: "in-progress"
-  → Save to Redis
+@fixer works through each item, updates Redis AFTER EACH:
+    ✅ Update database schema        ← Redis saved
+    ✅ Update API endpoint            ← Redis saved
+    ✅ Update UI component            ← Redis saved
+    💥 CRASH (power/internet)
+    ⬜ Add action button
+    ⬜ Write tests
+    ⬜ Build + lint passes
   ↓
-Agent works, orchestrator updates checklist after each step:
-  → "Read CODEMAP" ✅
-  → "Write tests" ✅
-  → "Implement" ✅    ← session crashes here
-  → "Build passes" ⬜
-  → "Commit" ⬜
-  → "Oracle review" ⬜
+Next session boots → reads ai:tasks:{project}
+  → Task: "in-progress", 3/6 done
+  → Resume: "Add action button"
+  → @fixer continues from exact step
   ↓
-Next session boots:
-  → Reads ai:tasks:{project}
-  → Sees task 2 is "in-progress", checklist shows 3/6 done
-  → Resumes at "Build passes"
+@fixer finishes all items → status: "review"
+  ↓
+Orchestrator dispatches @oracle to review
+  ↓
+@oracle reviews, creates its OWN checklist:
+    ⬜ Check spec compliance
+    ⬜ Check error handling
+    ⬜ Check test coverage
+  ↓
+@oracle finds bugs → creates fix checklist:
+    ⬜ Fix: missing error state on API failure
+    ⬜ Fix: add index on orders.user_id
+  → status: "fix-needed"
+  ↓
+@fixer reads oracle's fix checklist → works through it:
+    ✅ Fix: missing error state         ← Redis saved
+    ✅ Fix: add index                   ← Redis saved
+  → status: "review"
+  ↓
+@oracle re-reviews → APPROVED → status: "done"
+  ↓
+Loop ends. Next task begins.
 ```
 
 ### Task Board Structure
@@ -354,34 +380,55 @@ redis-cli SET "ai:tasks:$PROJECT" '<json>'
     {
       "id": 1,
       "agent": "fixer",
-      "goal": "Implement POST /v1/orders",
+      "goal": "Implement order management",
       "status": "done",
-      "files": ["src/controllers/orders_controller.rb"],
       "checklist": [
-        {"step": "Read CODEMAP.md", "done": true},
-        {"step": "Read TRD section", "done": true},
+        {"step": "Update database schema — add orders table", "done": true},
+        {"step": "Update API — POST /v1/orders endpoint", "done": true},
+        {"step": "Update UI — OrderForm component", "done": true},
+        {"step": "Add submit button with loading state", "done": true},
         {"step": "Write tests", "done": true},
-        {"step": "Implement", "done": true},
-        {"step": "Build + lint + tests pass", "done": true},
-        {"step": "Commit", "done": true},
-        {"step": "Oracle review", "done": true, "result": "APPROVED"}
-      ]
+        {"step": "Build + lint passes", "done": true}
+      ],
+      "review": {
+        "agent": "oracle",
+        "status": "APPROVED",
+        "fixes": []
+      }
     },
     {
       "id": 2,
       "agent": "fixer",
-      "goal": "Implement PATCH /v1/orders/:id",
+      "goal": "Add order editing",
       "status": "in-progress",
-      "files": ["src/controllers/orders_controller.rb"],
       "checklist": [
-        {"step": "Read CODEMAP.md", "done": true},
-        {"step": "Read TRD section", "done": true},
+        {"step": "Read CODEMAP.md for orders/", "done": true},
+        {"step": "Update API — PATCH /v1/orders/:id", "done": true},
+        {"step": "Update UI — EditOrder component", "done": false},
+        {"step": "Add cancel/save buttons", "done": false},
         {"step": "Write tests", "done": false},
-        {"step": "Implement", "done": false},
-        {"step": "Build + lint + tests pass", "done": false},
-        {"step": "Commit", "done": false},
-        {"step": "Oracle review", "done": false}
-      ]
+        {"step": "Build + lint passes", "done": false}
+      ],
+      "review": null
+    },
+    {
+      "id": 3,
+      "agent": "fixer",
+      "goal": "Fix bugs from oracle review",
+      "status": "fix-needed",
+      "checklist": [
+        {"step": "Fix: add error boundary on OrderForm", "done": false},
+        {"step": "Fix: handle 409 conflict on duplicate order", "done": false},
+        {"step": "Rerun tests after fixes", "done": false}
+      ],
+      "review": {
+        "agent": "oracle",
+        "status": "ISSUES",
+        "fixes": [
+          "Missing error boundary — OrderForm crashes on API failure",
+          "No handling for 409 conflict when order already exists"
+        ]
+      }
     }
   ]
 }
@@ -391,44 +438,69 @@ redis-cli SET "ai:tasks:$PROJECT" '<json>'
 
 | Status | Meaning |
 |---|---|
-| `pending` | Not started yet |
-| `in-progress` | Agent is working (or was working when session crashed) |
-| `done` | Completed + reviewed by @oracle |
-| `blocked` | Agent couldn't complete — needs intervention |
-| `review` | @fixer done, waiting for @oracle review |
+| `pending` | Not started — agent hasn't created checklist yet |
+| `in-progress` | Agent is working through its checklist |
+| `review` | Agent finished checklist, waiting for @oracle |
+| `fix-needed` | @oracle found issues — fix checklist created |
+| `done` | @oracle APPROVED — task complete |
+| `blocked` | Agent can't proceed — needs user/orchestrator help |
 
-### Orchestrator Rules
+### Agent Rules (included in every delegation)
 
-**Before dispatching any agent:**
-1. Read `ai:tasks:{project}` from Redis
-2. Find the next `pending` task (or resume `in-progress` task)
-3. Update task status to `in-progress` + save to Redis
-4. Dispatch agent with full briefing
+**When dispatched, EVERY agent MUST:**
 
-**After agent reports back (each step):**
-1. Update the checklist item to `done: true`
-2. Save to Redis immediately — **don't batch updates**
-3. If agent reports BLOCKED, set task status to `blocked` + save
+1. **Read the task board first:** `redis-cli GET ai:tasks:{project}`
+2. **If resuming (status: in-progress):** Find first `done: false` step, continue from there
+3. **If new task (status: pending):** Analyze the goal, create your own checklist of concrete steps, save to Redis, set status to `in-progress`
+4. **After completing EACH step:** Update that step to `done: true`, save to Redis immediately
+5. **When all steps done:** Set status to `review`, report to orchestrator
+6. **If fix-needed:** Read the review.fixes list, create fix checklist, work through it, set status to `review` when done
 
-**After @oracle review:**
-1. If APPROVED: set task status to `done`, save result in checklist
-2. If ISSUES: set status back to `in-progress`, dispatch @fixer to fix, then re-review
+**Include this in every agent briefing:**
+```
+TASK BOARD: redis-cli GET ai:tasks:{project}
+YOUR TASK: #{id} — {goal}
+RULES:
+- Read the task board first
+- Create your own checklist of steps before starting
+- Save checklist to Redis: redis-cli SET ai:tasks:{project} '<updated json>'
+- After EACH step: update that step to done, save to Redis
+- When all done: set status to "review"
+```
 
-**On session crash recovery:**
-1. Read `ai:tasks:{project}`
-2. Find task with status `in-progress`
-3. Read its checklist — find first `done: false` step
-4. Resume from that step (re-dispatch agent if needed)
+### The Review Loop
+
+```
+@fixer finishes → status: "review"
+  ↓
+Orchestrator dispatches @oracle:
+  "Review task #{id}. Read the checklist and changed files.
+   Check: spec compliance, error handling, test coverage, patterns."
+  ↓
+@oracle reviews → creates review result:
+  ├─ APPROVED → status: "done" ✅
+  └─ ISSUES → creates fix list in review.fixes[]
+               → new task with status: "fix-needed"
+               → orchestrator dispatches @fixer with fix checklist
+                 ↓
+               @fixer reads fixes → works through them → status: "review"
+                 ↓
+               @oracle re-reviews → APPROVED or more fixes
+                 ↓
+               Loop until APPROVED
+```
+
+**The loop is mandatory. No task is "done" without @oracle APPROVED.**
 
 ### Boot Checklist (shows task board)
 
 ```
-  Task board:             ✅ 5 tasks (3 done, 1 in-progress, 1 pending)
-    #1 fixer:             ✅ POST /v1/orders — done (oracle: APPROVED)
-    #2 fixer:             🔄 PATCH /v1/orders/:id — step 3/7 (Write tests)
-    #3 designer:          ⬜ Bulk actions toolbar mockup — pending
-    #4 fixer:             ⬜ DELETE /v1/orders/:id — pending
-    #5 oracle:            ⬜ Final review — pending
+  Task board:             ✅ 5 tasks (2 done, 1 in-progress, 1 fix-needed, 1 pending)
+    #1 fixer:             ✅ Order management — done (oracle: APPROVED)
+    #2 fixer:             🔄 Order editing — step 3/6 (Update UI)
+    #3 fixer:             🔧 Fix bugs from review — 0/3 fixes done
+    #4 designer:          ⬜ Order list redesign — pending
+    #5 fixer:             ⬜ Delete order — pending
 ```
 
 ## STATE PERSISTENCE - ON COMPLETION
