@@ -20,14 +20,19 @@ Run these checks and **print the checklist to the user** before doing anything e
 3. redis-cli GET ai:templates:index → load or fetch from Outline if empty
 4. redis-cli GET ai:agent-config → agent models, skills, MCPs
 5. redis-cli GET ai:workflow-guide → orchestrator delegation + review workflow
-6. Check Outline for Project Tracker (if active project)
+6. Detect project: PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
+7. redis-cli GET ai:state:$PROJECT → last session state for this project
+8. Check Outline for Project Tracker (if active project)
 ```
+
+**How to detect project name:** Run `basename $(git rev-parse --show-toplevel)` to get the repo name (e.g., `oms`, `customer-portal`, `ichigo-admin`). This is the Redis key suffix.
 
 **After all checks, load agent config from Redis:**
 ```bash
 redis-cli GET ai:agent-config
+redis-cli GET ai:state:$PROJECT
 ```
-**This returns the JSON with all agent models, skills, and MCPs. Parse it and print the checklist below.**
+**Parse the JSON and print the checklist below.**
 
 **Then print this checklist to the user:**
 
@@ -39,6 +44,9 @@ Session Boot:
   ai:templates:index:     ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:workflow-guide:      ✅ loaded (X,XXX chars, ~X,XXX tokens)
+  Project:                ✅ [project-name]
+  Last session:           ✅ [date] — [what was done] or ⬜ first session
+  Next action:            ✅ [specific next step] or ⬜ none
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
 Agents:
@@ -294,10 +302,27 @@ When design is approved, create TRDs BEFORE delegating to @fixer:
 
 ## STATE PERSISTENCE - ON COMPLETION
 
-Delegate all persistence to @librarian:
+**Before ending ANY session, the orchestrator MUST do both:**
 
-1. **Update Project Tracker in Outline (MANDATORY)** — What was done, progress, decisions, next steps
-2. **Feature complete?** → @fixer creates PR → @fixer requests review from @oracle → staging-integration if multi-PR → @librarian updates Outline checklist → @librarian saves final state
+### 1. Save to Redis (instant, local)
+
+Detect project name and save state:
+```bash
+PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
+redis-cli SET "ai:state:$PROJECT" '{"phase":"...","task":"...","last_session":"YYYY-MM-DD","next_action":"[SPECIFIC — what to do first next session]","decisions":["..."],"blockers":"none or description"}'
+```
+
+**The `next_action` must be specific enough for a fresh AI to resume instantly:**
+- Bad: "Continue working on orders"
+- Good: "Implement PATCH /v1/orders/:id per API TRD section Orders. GET and POST endpoints done and tested."
+
+### 2. Update Project Tracker in Outline
+
+Delegate to @librarian: update the Project Tracker document with session log entry, current status, and next action.
+
+### 3. Feature complete?
+
+If yes: @fixer creates PR → @oracle reviews → staging-integration if multi-PR → @librarian updates Outline checklist
 
 ## BRANCHING RULES — NON-NEGOTIABLE
 
