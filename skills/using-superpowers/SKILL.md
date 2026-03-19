@@ -466,7 +466,7 @@ Orchestrator dispatches @oracle to review
 Loop ends. Next task begins.
 ```
 
-### Task Board Structure
+### Task Board Structure (Three Levels: Feature → Sub-task → Steps)
 
 ```bash
 PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
@@ -475,65 +475,90 @@ redis-cli SET "ai:tasks:$PROJECT" '<json>'
 
 ```json
 {
-  "sprint": "Sprint 2",
   "updated": "2026-03-19T14:30:00Z",
-  "tasks": [
+  "features": [
     {
       "id": 1,
-      "agent": "fixer",
-      "goal": "Implement order management",
-      "status": "done",
-      "checklist": [
-        {"step": "Update database schema — add orders table", "done": true},
-        {"step": "Update API — POST /v1/orders endpoint", "done": true},
-        {"step": "Update UI — OrderForm component", "done": true},
-        {"step": "Add submit button with loading state", "done": true},
-        {"step": "Write tests", "done": true},
-        {"step": "Build + lint passes", "done": true}
-      ],
-      "review": {
-        "agent": "oracle",
-        "status": "APPROVED",
-        "fixes": []
-      }
+      "name": "Authentication",
+      "status": "in-progress",
+      "subtasks": [
+        {
+          "id": "1a",
+          "goal": "Login — Controller + Model",
+          "agent": "fixer",
+          "status": "done",
+          "checklist": [
+            {"step": "Read CODEMAP.md", "done": true},
+            {"step": "Create User model + migration", "done": true},
+            {"step": "Create AuthController with login action", "done": true},
+            {"step": "Write tests", "done": true},
+            {"step": "Build + lint passes", "done": true}
+          ],
+          "review": {"agent": "oracle", "status": "APPROVED", "fixes": []}
+        },
+        {
+          "id": "1b",
+          "goal": "Login — UI Form",
+          "agent": "designer",
+          "status": "in-progress",
+          "checklist": [
+            {"step": "Read existing UI patterns from ai:knowledge", "done": true},
+            {"step": "Create LoginForm component", "done": false},
+            {"step": "Connect to auth API", "done": false},
+            {"step": "Handle error states (wrong password, locked)", "done": false},
+            {"step": "Build + lint passes", "done": false}
+          ],
+          "review": null
+        },
+        {
+          "id": "1c",
+          "goal": "Login — E2E Tests",
+          "agent": "fixer",
+          "status": "pending",
+          "depends_on": ["1a", "1b"],
+          "checklist": [],
+          "review": null
+        }
+      ]
     },
     {
       "id": 2,
-      "agent": "fixer",
-      "goal": "Add order editing",
-      "status": "in-progress",
-      "checklist": [
-        {"step": "Read CODEMAP.md for orders/", "done": true},
-        {"step": "Update API — PATCH /v1/orders/:id", "done": true},
-        {"step": "Update UI — EditOrder component", "done": false},
-        {"step": "Add cancel/save buttons", "done": false},
-        {"step": "Write tests", "done": false},
-        {"step": "Build + lint passes", "done": false}
-      ],
-      "review": null
-    },
-    {
-      "id": 3,
-      "agent": "fixer",
-      "goal": "Fix bugs from oracle review",
-      "status": "fix-needed",
-      "checklist": [
-        {"step": "Fix: add error boundary on OrderForm", "done": false},
-        {"step": "Fix: handle 409 conflict on duplicate order", "done": false},
-        {"step": "Rerun tests after fixes", "done": false}
-      ],
-      "review": {
-        "agent": "oracle",
-        "status": "ISSUES",
-        "fixes": [
-          "Missing error boundary — OrderForm crashes on API failure",
-          "No handling for 409 conflict when order already exists"
-        ]
-      }
+      "name": "Registration",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "2a",
+          "goal": "Registration — Controller + Model",
+          "agent": "fixer",
+          "status": "pending",
+          "checklist": [],
+          "review": null
+        },
+        {
+          "id": "2b",
+          "goal": "Registration — UI Form",
+          "agent": "designer",
+          "status": "pending",
+          "depends_on": ["2a"],
+          "checklist": [],
+          "review": null
+        }
+      ]
     }
   ]
 }
 ```
+
+**Three levels:**
+- **Feature** (Authentication) — the big unit, tracks overall status
+- **Sub-task** (Login Controller, Login UI) — one agent owns each, has its own checklist
+- **Steps** (Create model, Write tests) — agent-level work, updated after each completion
+
+**Feature status** is derived from sub-tasks:
+- All sub-tasks `done` → feature `done`
+- Any sub-task `in-progress` → feature `in-progress`
+- All sub-tasks `pending` → feature `pending`
+- Any sub-task `blocked` → feature `blocked`
 
 ### Task Statuses
 
@@ -541,71 +566,81 @@ redis-cli SET "ai:tasks:$PROJECT" '<json>'
 |---|---|
 | `pending` | Not started — agent hasn't created checklist yet |
 | `in-progress` | Agent is working through its checklist |
-| `review` | Agent finished checklist, waiting for @oracle |
+| `review` | Agent finished, waiting for @oracle review |
 | `fix-needed` | @oracle found issues — fix checklist created |
-| `done` | @oracle APPROVED — task complete |
-| `blocked` | Agent can't proceed — needs user/orchestrator help |
+| `done` | @oracle APPROVED — sub-task complete |
+| `blocked` | Agent can't proceed — needs help |
+
+### Sub-task Dependencies
+
+Sub-tasks can have `depends_on` — a list of sub-task IDs that must be `done` before this one starts:
+
+```json
+{"id": "1c", "goal": "E2E Tests", "depends_on": ["1a", "1b"], "status": "pending"}
+```
+
+The orchestrator checks dependencies before dispatching. If `1a` or `1b` isn't done, `1c` stays `pending`.
 
 ### Agent Rules (included in every delegation)
 
 **When dispatched, EVERY agent MUST:**
 
-1. **Read the task board first:** `redis-cli GET ai:tasks:{project}`
-2. **If resuming (status: in-progress):** Find first `done: false` step, continue from there
-3. **If new task (status: pending):** Analyze the goal, create your own checklist of concrete steps, save to Redis, set status to `in-progress`
-4. **After completing EACH step:** Update that step to `done: true`, save to Redis immediately
-5. **When all steps done:** Set status to `review`, report to orchestrator
-6. **If fix-needed:** Read the review.fixes list, create fix checklist, work through it, set status to `review` when done
+1. **Read the task board:** `redis-cli GET ai:tasks:{project}`
+2. **Find your sub-task** by ID (e.g., `1b`)
+3. **If resuming (in-progress):** Find first `done: false` step, continue from there
+4. **If new (pending):** Create your checklist of concrete steps, save to Redis, set status to `in-progress`
+5. **After EACH step:** Update to `done: true`, save to Redis IMMEDIATELY — no batching
+6. **When all steps done:** Set status to `review`
+7. **If fix-needed:** Read review.fixes, create fix steps, work through them
 
 **Include this in every agent briefing:**
 ```
 TASK BOARD: redis-cli GET ai:tasks:{project}
-YOUR TASK: #{id} — {goal}
+YOUR SUB-TASK: #{id} — {goal}
+FEATURE: {feature name}
 RULES:
-- Read the task board first
+- Read the task board first — find your sub-task by ID
 - Create your own checklist of concrete steps before starting
-- Save checklist to Redis BEFORE starting work: redis-cli SET ai:tasks:{project} '<json>'
-- ⚠️ AFTER EVERY SINGLE COMPLETED STEP: update that step to done:true and save to Redis IMMEDIATELY
-  → Do NOT batch updates. Do NOT wait until the end. Save after EACH step.
-  → This protects against crashes — next session resumes at exact step.
-- When all steps done: set status to "review"
-- After oracle review: if fix-needed, create fix checklist, save to Redis, work through fixes
+- Save to Redis BEFORE starting: redis-cli SET ai:tasks:{project} '<json>'
+- ⚠️ AFTER EVERY STEP: update done:true, save to Redis IMMEDIATELY
+  → No batching. No waiting. Crash protection.
+- When all done: set status to "review"
+- If fix-needed: read review.fixes, create fix steps, work through them
 ```
 
 ### The Review Loop
 
 ```
-@fixer finishes → status: "review"
+Agent finishes sub-task → status: "review"
   ↓
 Orchestrator dispatches @oracle:
-  "Review task #{id}. Read the checklist and changed files.
-   Check: spec compliance, error handling, test coverage, patterns."
+  "Review sub-task #{id} of feature {name}.
+   Check: spec compliance, error handling, tests, patterns."
   ↓
-@oracle reviews → creates review result:
+@oracle reviews:
   ├─ APPROVED → status: "done" ✅
+  │   → Check: are all sub-tasks for this feature done?
+  │   → Yes: feature status → "done"
+  │   → No: dispatch next pending sub-task
   └─ ISSUES → creates fix list in review.fixes[]
-               → new task with status: "fix-needed"
-               → orchestrator dispatches @fixer with fix checklist
-                 ↓
-               @fixer reads fixes → works through them → status: "review"
-                 ↓
-               @oracle re-reviews → APPROVED or more fixes
-                 ↓
-               Loop until APPROVED
+               → status: "fix-needed"
+               → orchestrator dispatches same agent with fixes
+               → agent works through fix steps → status: "review"
+               → @oracle re-reviews → loop until APPROVED
 ```
 
-**The loop is mandatory. No task is "done" without @oracle APPROVED.**
-
-### Boot Checklist (shows task board)
+### Boot Checklist (summary by default)
 
 ```
-  Task board:             ✅ 5 tasks (2 done, 1 in-progress, 1 fix-needed, 1 pending)
-    #1 fixer:             ✅ Order management — done (oracle: APPROVED)
-    #2 fixer:             🔄 Order editing — step 3/6 (Update UI)
-    #3 fixer:             🔧 Fix bugs from review — 0/3 fixes done
-    #4 designer:          ⬜ Order list redesign — pending
-    #5 fixer:             ⬜ Delete order — pending
+  Task board:             ✅ 2 features (1 in-progress, 1 pending)
+    1. Authentication:    🔄 in-progress (1/3 sub-tasks done)
+       1a. fixer:         ✅ Controller + Model (5/5 — APPROVED)
+       1b. designer:      🔄 UI Form — step 2/5 (Create LoginForm)
+       1c. fixer:         ⬜ E2E Tests — waiting on 1a, 1b
+    2. Registration:      ⬜ pending (0/2 sub-tasks)
 ```
+
+Only expand the `in-progress` feature by default. Show pending features as one-line summaries.
 
 ## CROSS-REPO FEATURES
 
