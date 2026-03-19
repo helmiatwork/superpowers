@@ -53,7 +53,7 @@ Session Boot:
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
   workflow-guide:          ✅ loaded via skill [*]
   Project:                ✅ [project-name]
-  Knowledge:              ✅ loaded (X,XXX chars)
+  Knowledge:              ✅ loaded (X,XXX chars, ~X,XXX tokens)
     Docs:                 [N] required (loaded), [N] reference (on-demand)
     Business rules:       [N] rules loaded
     API gotchas:          [N] gotchas loaded
