@@ -9,39 +9,36 @@ description: Use when starting any conversation - establishes how to find and us
 
 Before taking ANY action — even before reading the user's message:
 
-### Boot Sequence (VISIBLE TO USER — MANDATORY)
+### Boot Sequence (DELEGATE TO @fixer — SAVE TOKENS)
 
-Run these checks and **print the checklist to the user** before doing anything else. This is the FIRST output of every session — no exceptions.
+**The orchestrator MUST delegate the boot sequence to @fixer.** Boot is mechanical work (redis-cli commands + formatting) — Haiku handles it perfectly at 19x cheaper than Opus.
+
+**Orchestrator dispatches @fixer with this briefing:**
 
 ```
-0. redis-cli ping → if not PONG → brew services start redis
-1. redis-cli GET ai:strategy → load or fetch from Outline if empty
-2. redis-cli GET ai:execution-protocol → load or fetch from Outline if empty
-3. redis-cli GET ai:templates:index → load or fetch from Outline if empty
-4. redis-cli GET ai:agent-config → agent models, skills, MCPs
-5. redis-cli GET ai:workflow-guide → orchestrator delegation + review workflow
-6. Detect project: PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
-7. redis-cli GET ai:knowledge:$PROJECT → project docs, TRDs, API specs, features
-8. redis-cli GET ai:state:$PROJECT → last session state for this project
-9. redis-cli GET ai:tasks:$PROJECT → task board with per-agent checklists
-10. redis-cli KEYS ai:feature:* → check if this project is part of a cross-repo feature
-11. Load REQUIRED docs from Outline (listed in ai:knowledge:{project}.docs.required)
-12. Check Outline for Project Tracker (if active project)
+GOAL: Run session boot sequence and return formatted checklist.
+RULES: Run each command, collect results, return the formatted checklist. Zero narration.
+
+COMMANDS (run in order):
+  redis-cli ping
+  PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
+  redis-cli GET ai:strategy | wc -c
+  redis-cli GET ai:execution-protocol | wc -c
+  redis-cli GET ai:templates:index | wc -c
+  redis-cli GET ai:agent-config
+  redis-cli GET ai:workflow-guide | wc -c
+  redis-cli GET ai:knowledge:$PROJECT
+  redis-cli GET ai:state:$PROJECT
+  redis-cli GET ai:tasks:$PROJECT
+  redis-cli KEYS "ai:feature:*"
+
+If any Redis key is empty: report which key is missing.
+If Redis is not running: run "brew services start redis", wait, retry.
+
+OUTPUT FORMAT: Return ONLY the formatted checklist below, filled with real values. Nothing else.
 ```
 
-**How to detect project name:** Run `basename $(git rev-parse --show-toplevel)` to get the repo name (e.g., `oms`, `customer-portal`, `ichigo-admin`). This is the Redis key suffix.
-
-**After all checks, load state from Redis:**
-```bash
-redis-cli GET ai:agent-config
-redis-cli GET ai:state:$PROJECT
-redis-cli GET ai:tasks:$PROJECT
-# Check if this project is part of a cross-repo feature:
-for key in $(redis-cli KEYS "ai:feature:*"); do
-  if redis-cli GET "$key" | grep -q "$PROJECT"; then echo "$key"; fi
-done
-```
-**Parse the JSON and print the checklist below.**
+**@fixer returns the checklist, orchestrator prints it to user:**
 
 **Then print this checklist to the user:**
 
