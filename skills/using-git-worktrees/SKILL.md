@@ -11,8 +11,6 @@ Git worktrees create isolated workspaces sharing the same repository, allowing w
 
 **Core principle:** Systematic directory selection + safety verification = reliable isolation.
 
-**Announce at start:** "I'm using the using-git-worktrees skill to set up an isolated workspace."
-
 ## Directory Selection Process
 
 Follow this priority order:
@@ -56,7 +54,7 @@ Which would you prefer?
 
 ```bash
 # Check if directory is ignored (respects local, global, and system gitignore)
-rtk git check-ignore -q .worktrees 2>/dev/null || rtk git check-ignore -q worktrees 2>/dev/null
+rtk rtk git check-ignore -q .worktrees 2>/dev/null || rtk rtk git check-ignore -q worktrees 2>/dev/null
 ```
 
 **If NOT ignored:**
@@ -77,7 +75,7 @@ No .gitignore verification needed - outside project entirely.
 ### 1. Detect Project Name
 
 ```bash
-project=$(basename "$(git rev-parse --show-toplevel)")
+project=$(basename "$(rtk git rev-parse --show-toplevel)")
 ```
 
 ### 2. Create Worktree
@@ -108,8 +106,12 @@ cd "$path"
 Auto-detect and run appropriate setup:
 
 ```bash
-# Node.js
+# Node.js / React / Next.js
 if [ -f package.json ]; then rtk npm install; fi
+
+# Rails / Ruby
+if [ -f Gemfile ]; then rtk bundle install; fi
+if [ -f bin/rails ]; then rtk bin/rails db:migrate; fi
 
 # Rust
 if [ -f Cargo.toml ]; then rtk cargo build; fi
@@ -163,7 +165,7 @@ Ready to implement <feature-name>
 ### Skipping ignore verification
 
 - **Problem:** Worktree contents get tracked, pollute git status
-- **Fix:** Always use `git check-ignore` before creating project-local worktree
+- **Fix:** Always use `rtk git check-ignore` before creating project-local worktree
 
 ### Assuming directory location
 
@@ -183,13 +185,11 @@ Ready to implement <feature-name>
 ## Example Workflow
 
 ```
-You: I'm using the using-git-worktrees skill to set up an isolated workspace.
-
 [Check .worktrees/ - exists]
-[Verify ignored - git check-ignore confirms .worktrees/ is ignored]
-[Create worktree: git worktree add .worktrees/auth -b feature/auth]
-[Run npm install]
-[Run npm test - 47 passing]
+[Verify ignored - rtk rtk git check-ignore confirms .worktrees/ is ignored]
+[Create worktree: rtk git worktree add .worktrees/auth -b feature/auth]
+[Run rtk npm install]
+[Run rtk npm test - 47 passing]
 
 Worktree ready at /Users/jesse/myproject/.worktrees/auth
 Tests passing (47 tests, 0 failures)

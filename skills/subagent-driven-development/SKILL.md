@@ -126,77 +126,29 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 ## Example Workflow
 
 ```
-You: I'm using Subagent-Driven Development to execute this plan.
-
-[Read plan file once: docs/superpowers/plans/feature-plan.md]
-[Extract all 5 tasks with full text and context]
-[Create TodoWrite with all tasks]
+[Read plan, extract all 5 tasks, create TodoWrite]
 
 Task 1: Hook installation script
-
-[Get Task 1 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
-
-Implementer: "Before I begin - should the hook be installed at user or system level?"
-
-You: "User level (~/.config/superpowers/hooks/)"
-
-Implementer: "Got it. Implementing now..."
-[Later] Implementer:
-  - Implemented install-hook command
-  - Added tests, 5/5 passing
-  - Self-review: Found I missed --force flag, added it
-  - Committed
-
-[Dispatch spec compliance reviewer]
-Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
-
-[Get git SHAs, dispatch code quality reviewer]
-Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
-
+[Dispatch implementer with full task text + context]
+Implementer: "Should hook be user or system level?"
+You: "User level"
+Implementer: DONE — Tests: 5/5
+[Spec reviewer: ✅]
+[Code reviewer: ✅]
 [Mark Task 1 complete]
 
 Task 2: Recovery modes
-
-[Get Task 2 text and context (already extracted)]
-[Dispatch implementation subagent with full task text + context]
-
-Implementer: [No questions, proceeds]
-Implementer:
-  - Added verify/repair modes
-  - 8/8 tests passing
-  - Self-review: All good
-  - Committed
-
-[Dispatch spec compliance reviewer]
-Spec reviewer: ❌ Issues:
-  - Missing: Progress reporting (spec says "report every 100 items")
-  - Extra: Added --json flag (not requested)
-
-[Implementer fixes issues]
-Implementer: Removed --json flag, added progress reporting
-
-[Spec reviewer reviews again]
-Spec reviewer: ✅ Spec compliant now
-
-[Dispatch code quality reviewer]
-Code reviewer: Strengths: Solid. Issues (Important): Magic number (100)
-
+[Dispatch implementer]
+Implementer: DONE — Tests: 8/8
+[Spec reviewer: ❌ Missing progress reporting, extra --json flag]
 [Implementer fixes]
-Implementer: Extracted PROGRESS_INTERVAL constant
-
-[Code reviewer reviews again]
-Code reviewer: ✅ Approved
-
+[Spec reviewer: ✅]
+[Code reviewer: Important — magic number]
+[Implementer fixes]
+[Code reviewer: ✅]
 [Mark Task 2 complete]
 
-...
-
-[After all tasks]
-[Dispatch final code-reviewer]
-Final reviewer: All requirements met, ready to merge
-
-Done!
+[After all tasks → final code-reviewer → finishing-a-development-branch]
 ```
 
 ## Advantages
@@ -274,17 +226,34 @@ Done!
 - Dispatch fix subagent with specific instructions
 - Don't try to fix manually (context pollution)
 
+## Requesting Code Review
+
+After each task or before merge, dispatch code-reviewer subagent with precise context:
+
+**1. Get SHAs:**
+```bash
+BASE_SHA=$(rtk git rev-parse HEAD~1)  # or origin/main
+HEAD_SHA=$(rtk git rev-parse HEAD)
+```
+
+**2. Dispatch code-reviewer subagent** with: what was implemented, plan/requirements, BASE_SHA, HEAD_SHA, brief description.
+
+**3. Act on feedback:** Fix Critical immediately, Important before proceeding, note Minor for later. Push back if wrong (with reasoning).
+
+**Check PR size:** >20 files → split by domain before review.
+**Multi-PR features:** Use `staging-integration` after review passes.
+
+See template at: `requesting-code-review/code-reviewer.md`
+
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
+- **superpowers:using-git-worktrees** - Set up isolated workspace before starting
 - **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:requesting-code-review** - Code review template for reviewer subagents
 - **superpowers:finishing-a-development-branch** - Complete development after all tasks
-- **superpowers:staging-integration** - If the plan produces multiple PRs or spans multiple repos, use after code review passes to merge all PRs to a staging branch for regression testing before production merge
+- **superpowers:staging-integration** - Multi-PR regression testing before merge
 
 **Subagents should use:**
-- **superpowers:test-driven-development** - Subagents follow TDD for each task
+- **superpowers:test-driven-development** - TDD for each task
 
-**Alternative workflow:**
-- **superpowers:executing-plans** - Use for parallel session instead of same-session execution
+**Alternative:** superpowers:executing-plans for parallel session execution

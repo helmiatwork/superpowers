@@ -7,8 +7,6 @@ description: Use when the orchestrator needs detailed technical documents (API s
 
 Create precise, execution-ready technical documents so @fixer can implement without making design decisions. Every TRD is stored in Outline for team visibility and future reference.
 
-**Announce at start:** "I'm using the technical-reference-document skill to create the TRD."
-
 ## When to Use
 
 - Orchestrator has a clear goal from brainstorming/design
