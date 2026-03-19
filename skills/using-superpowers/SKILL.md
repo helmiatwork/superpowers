@@ -68,14 +68,14 @@ Session Boot:
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
 Agents:
-| Agent        | Model      | Skills                             | Last checkpoint              | Next                              |
-|--------------|------------|------------------------------------|------------------------------|-----------------------------------|
-| orchestrator | opus-4-6   | [*]                                | [last action or —]           | [next action or —]                |
-| oracle       | opus-4-6   | code-reviewer                      | [last review result or —]    | [pending review or —]             |
-| librarian    | sonnet-4-6 | —                                  | [last doc updated or —]      | [pending doc work or —]           |
-| explorer     | haiku-4-5  | —                                  | [last exploration or —]      | [pending exploration or —]        |
-| designer     | sonnet-4-6 | agent-browser, ui-design-system    | [last design work or —]      | [pending design or —]             |
-| fixer        | haiku-4-5  | senior-fullstack                   | [last implementation or —]   | [next task or —]                  |
+| Agent | Skills | MCPs | Last | Next |
+|---|---|---|---|---|
+| orchestrator | [*] | websearch, outline | [last] | [next] |
+| oracle | code-reviewer | — | [last] | [next] |
+| librarian | — | websearch, context7, grep_app, outline | [last] | [next] |
+| explorer | — | — | [last] | [next] |
+| designer | agent-browser, ui-design-system | opencode-browser | [last] | [next] |
+| fixer | senior-fullstack | — | [last] | [next] |
 
 Agents:
   orchestrator:  opus-4-6   | skills: [*]                              | mcps: websearch, outline
