@@ -9,40 +9,37 @@ description: Use when starting any conversation - establishes how to find and us
 
 Before taking ANY action — even before reading the user's message:
 
-### Boot Sequence (DELEGATE TO @fixer — SAVE TOKENS)
+### Boot Sequence (LOAD EVERYTHING — FULL CONTEXT)
 
-**The orchestrator MUST delegate the boot sequence to @fixer.** Boot is mechanical work (redis-cli commands + formatting) — Haiku handles it perfectly at 19x cheaper than Opus.
+**The orchestrator reads ALL Redis keys in full.** Every key. No summaries. No shortcuts. The orchestrator needs full context to delegate correctly and resume work instantly.
 
-**Two-step boot:**
-
-**Step 1: Run `ai-boot` for summary checklist (print to user)**
 ```bash
-ai-boot
-```
-This script outputs a ready-to-print summary. Orchestrator prints verbatim — zero thinking.
+# 0. Ensure Redis
+redis-cli ping  # if not PONG → brew services start redis
 
-**Step 2: Load full content of global keys into orchestrator memory (DO NOT PRINT)**
-```bash
+# 1. Detect project
+PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
+
+# 2. Load ALL keys — read full content
 redis-cli GET ai:strategy
 redis-cli GET ai:execution-protocol
-redis-cli GET ai:workflow-guide
-redis-cli GET ai:agent-config
 redis-cli GET ai:templates:index
+redis-cli GET ai:agent-config
+redis-cli GET ai:workflow-guide
+redis-cli GET ai:knowledge:$PROJECT
+redis-cli GET ai:state:$PROJECT
+redis-cli GET ai:tasks:$PROJECT
+redis-cli KEYS "ai:feature:*"  # then GET each feature key found
 ```
-The orchestrator MUST read the full content of these 5 keys. These contain the rules, conventions, tech stack, delegation protocol, and review workflow that the orchestrator needs to write correct delegation briefings. Read them silently — do NOT print the content to the user.
 
-**What goes into orchestrator memory vs what's just a summary:**
+**ALL keys are read in FULL.** The orchestrator must understand:
+- ai:strategy → coding conventions, tech stack, branching rules
+- ai:execution-protocol → phase checklists, STOP gates
+- ai:knowledge → business rules, API gotchas, data model, features
+- ai:state → last session, next action, agent history
+- ai:tasks → task board with every feature, sub-task, step, checklist
 
-| Key | Orchestrator reads FULL content | Why |
-|---|---|---|
-| ai:strategy | **YES** — read silently | Coding conventions, tech stack, branching rules, quality standards |
-| ai:execution-protocol | **YES** — read silently | Phase checklists, STOP gates, anti-freelancing rules |
-| ai:workflow-guide | **YES** — already loaded via skill | Delegation, review loop, Redis handoff |
-| ai:agent-config | **YES** — read silently | Agent models, skills, MCPs for delegation |
-| ai:templates:index | **YES** — read silently | Template IDs for new project phases |
-| ai:knowledge:{project} | **SUMMARY only** (from ai-boot) | Doc counts, rules, features — load specific docs on demand |
-| ai:state:{project} | **SUMMARY only** (from ai-boot) | Last session, next action — enough for context |
-| ai:tasks:{project} | **SUMMARY only** (from ai-boot) | Feature/subtask progress — load detail when working on a task |
+**Then print a SUMMARY checklist to the user** (content is in memory, show only status):
 
 **Then print this checklist to the user:**
 
