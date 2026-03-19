@@ -13,45 +13,17 @@ Before taking ANY action — even before reading the user's message:
 
 **The orchestrator MUST delegate the boot sequence to @fixer.** Boot is mechanical work (redis-cli commands + formatting) — Haiku handles it perfectly at 19x cheaper than Opus.
 
-**Orchestrator dispatches @fixer with this briefing:**
+**Orchestrator runs ONE command — no agent dispatch needed:**
 
-```
-GOAL: Run session boot and return a ready-to-print checklist string.
-
-STEP 1 — Check Redis:
-  redis-cli ping
-  If not PONG → brew services start redis → wait → retry
-
-STEP 2 — Get sizes only (do NOT read full content):
-  redis-cli STRLEN ai:strategy
-  redis-cli STRLEN ai:execution-protocol
-  redis-cli STRLEN ai:templates:index
-  redis-cli STRLEN ai:agent-config
-  redis-cli STRLEN ai:workflow-guide
-
-STEP 3 — Get project state (read these in full — they are small):
-  PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
-  redis-cli GET ai:knowledge:$PROJECT
-  redis-cli GET ai:state:$PROJECT
-  redis-cli GET ai:tasks:$PROJECT
-  redis-cli KEYS "ai:feature:*"
-
-STEP 4 — Build the checklist string and return it.
-  Use the sizes from step 2 and the JSON from step 3.
-  Estimate tokens as: chars / 4.
-  Parse ai:tasks JSON to count features/subtasks/statuses.
-  Parse ai:state JSON for last session + next action + agent history.
-  Parse ai:knowledge JSON for doc counts, rules, patterns.
-  Parse ai:agent-config JSON for agent table.
-
-IMPORTANT:
-  - Do NOT read ai:strategy, ai:execution-protocol, or ai:workflow-guide content.
-    Only use STRLEN for sizes. These are large docs — reading them wastes tokens.
-  - Return ONLY the final formatted checklist string. Nothing else.
-  - The orchestrator will print your output VERBATIM — no processing.
+```bash
+ai-boot
 ```
 
-**@fixer returns the ready-to-print checklist. Orchestrator echoes it directly — zero thinking:**
+This script (at `/Users/ichigo/.local/bin/ai-boot`) reads all Redis keys, parses JSON, and outputs the ready-to-print checklist. It uses STRLEN for large keys (no content loading) and only reads small keys in full.
+
+**Orchestrator prints the output verbatim — zero thinking, zero token waste.**
+
+The `ai-boot` script costs ~0 orchestrator tokens (just one Bash call). The output is ~50 lines of text (~200 tokens to display).
 
 **Then print this checklist to the user:**
 
