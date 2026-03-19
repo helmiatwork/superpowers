@@ -118,5 +118,6 @@ If nothing exists → generate before proceeding.
 | `ai:templates:index` | Project Templates collection index | no TTL |
 | `ai:agent-config` | Agent models, skills, MCPs config | no TTL |
 | `ai:workflow-guide` | Orchestrator delegation + review workflow | no TTL |
+| `ai:state:{project}` | Last session state per project (e.g., `ai:state:oms`) | no TTL |
 
 To refresh manually: fetch from Outline → `redis-cli SET <key> "<content>" EX 604800`
