@@ -21,10 +21,12 @@ Run these checks and **print the checklist to the user** before doing anything e
 4. redis-cli GET ai:agent-config → agent models, skills, MCPs
 5. redis-cli GET ai:workflow-guide → orchestrator delegation + review workflow
 6. Detect project: PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
-7. redis-cli GET ai:state:$PROJECT → last session state for this project
-8. redis-cli GET ai:tasks:$PROJECT → task board with per-agent checklists
-9. redis-cli KEYS ai:feature:* → check if this project is part of a cross-repo feature
-10. Check Outline for Project Tracker (if active project)
+7. redis-cli GET ai:knowledge:$PROJECT → project docs, TRDs, API specs, features
+8. redis-cli GET ai:state:$PROJECT → last session state for this project
+9. redis-cli GET ai:tasks:$PROJECT → task board with per-agent checklists
+10. redis-cli KEYS ai:feature:* → check if this project is part of a cross-repo feature
+11. Load REQUIRED docs from Outline (listed in ai:knowledge:{project}.docs.required)
+12. Check Outline for Project Tracker (if active project)
 ```
 
 **How to detect project name:** Run `basename $(git rev-parse --show-toplevel)` to get the repo name (e.g., `oms`, `customer-portal`, `ichigo-admin`). This is the Redis key suffix.
@@ -52,6 +54,10 @@ Session Boot:
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:workflow-guide:      ✅ loaded (X,XXX chars, ~X,XXX tokens)
   Project:                ✅ [project-name]
+  Knowledge:              ✅ loaded (X,XXX chars) — [N] required docs, [N] reference docs
+    Required:             ✅ [doc title] (type)
+                          ✅ [doc title] (type)
+    Features:             [N] features ([N] in-progress, [N] planned)
   Last session:           ✅ [date] — [what was done] or ⬜ first session
   Next action:            ✅ [specific next step] or ⬜ none
   Task board:             ✅ X tasks (Y done, Z in-progress, W pending) or ⬜ none
@@ -89,6 +95,61 @@ Use ✅ for loaded, ⚠️ for fetched from fallback (Outline), ❌ for missing/
 **If ANY item is ❌, STOP and fix it before proceeding.**
 
 Only after the checklist is printed and all items are ✅ or ⚠️, proceed to:
+
+## PROJECT KNOWLEDGE — LOAD BEFORE ANY WORK
+
+After reading `ai:knowledge:{project}`, the orchestrator MUST:
+
+1. **Load all `required` docs from Outline** — fetch each doc by ID, read in full. These are TRDs, API specs, architecture docs that the AI MUST understand before touching code.
+2. **Note `reference` docs** — don't load now, but know they exist. Load on-demand when a task touches that area.
+3. **Check `features` section** — know which features exist, their status, and which TRD/API sections cover them.
+4. **When delegating to agents**, include relevant knowledge:
+   - Working on `creators` feature? → include TRD section "Creators" + API section "Creator endpoints" in the briefing
+   - Working on `curated-lists`? → include TRD section "Curated Lists" + API section "CuratedList endpoints"
+   - **Never let agents work without the relevant TRD/API section in their briefing**
+
+### Knowledge Structure
+
+```json
+{
+  "project": "ichigo-admin",
+  "outline_collection": "dc175c88",
+  "docs": {
+    "required": [
+      {"id": "ab543398", "title": "TRD", "type": "trd", "covers": "Full technical spec"},
+      {"id": "86584564", "title": "API Contract", "type": "api", "covers": "All endpoints"}
+    ],
+    "reference": [
+      {"id": "d45b32f6", "title": "PR Plan", "type": "plan", "covers": "PR strategy"}
+    ]
+  },
+  "features": {
+    "creators": {"trd_section": "Creators", "api_section": "Creator endpoints", "status": "in-progress"},
+    "curated-lists": {"trd_section": "Curated Lists", "api_section": "CuratedList endpoints", "status": "in-progress"}
+  }
+}
+```
+
+### When user asks to work on a feature:
+
+```
+User: "work on the creators feature"
+  ↓
+Orchestrator reads ai:knowledge:ichigo-admin
+  → features.creators.trd_section = "Creators"
+  → features.creators.api_section = "Creator endpoints"
+  ↓
+Orchestrator loads from Outline:
+  → TRD doc (ab543398) → reads "Creators" section
+  → API doc (86584564) → reads "Creator endpoints" section
+  ↓
+Includes BOTH in the agent briefing:
+  REFERENCE:
+  - TRD: [paste Creators section]
+  - API: [paste Creator endpoints section]
+  ↓
+Agent has FULL knowledge — no guessing, no re-reading
+```
 
 ## DELEGATION IS MANDATORY — NO EXCEPTIONS
 
