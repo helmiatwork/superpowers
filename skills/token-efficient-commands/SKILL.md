@@ -5,168 +5,174 @@ description: Use when running ANY shell command — all CLI commands must use rt
 
 # Token-Efficient Commands
 
-## Overview
-
-Every CLI command MUST be prefixed with `rtk` for 60-90% token savings on output. Commands must be small, focused, and sequential — never long chains. This is non-negotiable.
-
-**Core principle:** `rtk <command>` always. One operation per call. Stop on failure.
-
 ## The Rule
 
-```
-# EVERY command gets the rtk prefix:
+**Every CLI command MUST be prefixed with `rtk`.** One operation per call. Stop on failure. No exceptions.
 
-# Git
-rtk git status
-rtk git diff
-rtk git log --oneline -1
-rtk git merge feature/xyz --no-edit
-rtk git cherry-pick <commit-hash>
+RTK (Rust Token Killer) compresses CLI output by 60-90%. The auto-rewrite hook handles orchestrator commands, but **subagent calls bypass the hook** (opencode limitation #5894). All agents must explicitly prefix with `rtk`.
+
+## Complete Command Reference
+
+### Git (80-92% savings)
+```bash
+rtk git status           # Compact status
+rtk git diff             # Condensed diff
+rtk git log --oneline -5 # One-line commits
+rtk git add <files>      # → "ok"
+rtk git commit -m "msg"  # → "ok abc1234"
+rtk git push             # → "ok main"
+rtk git pull             # → "ok 3 files +10 -2"
+rtk git merge feature/x --no-edit
+rtk git cherry-pick <hash>
 rtk git rebase main
-rtk git pull
-rtk git push
 rtk git stash
 rtk git branch -a
+```
 
-# Rails / Ruby — ALWAYS use rtk, never pipe through tail/head to truncate
+### GitHub CLI (26-87% savings)
+```bash
+rtk gh pr list
+rtk gh pr view 42
+rtk gh pr create --title "x" --body "y"
+rtk gh issue list
+rtk gh run list
+```
+
+### Files & Search (70-80% savings)
+```bash
+rtk ls .                 # Token-optimized directory tree
+rtk read file.ts         # Smart file reading
+rtk read file.ts -l aggressive  # Signatures only
+rtk find "*.ts" .        # Compact find results
+rtk grep "pattern" .     # Grouped search results
+rtk diff file1 file2     # Condensed diff
+rtk smart file.ts        # 2-line heuristic summary
+rtk json config.json     # Structure without values
+```
+
+### JavaScript/TypeScript (70-99% savings)
+```bash
+rtk npm install          # Stripped noise
+rtk npm test             # Failures only
+rtk npm run build        # Errors only
+rtk npx <command>
+rtk yarn install
+rtk pnpm list            # Compact dependency tree
+rtk vitest run           # Failures only (99.5% savings)
+rtk tsc                  # TS errors grouped by file (83%)
+rtk lint                 # ESLint/Biome grouped by rule (84%)
+rtk prettier --check .   # Files needing formatting (70%)
+rtk next build           # Route metrics only (87%)
+rtk playwright test      # Failures only (94%)
+rtk prisma generate      # No ASCII art (88%)
+```
+
+### Python (70-90% savings)
+```bash
+rtk pytest               # Failures only (90%)
+rtk ruff check           # JSON format, grouped (80%)
+rtk ruff format          # Text output
+rtk pip list             # Auto-detects uv (70-85%)
+rtk pip outdated
+rtk pip install -r requirements.txt
+rtk python manage.py migrate
+rtk python manage.py test
+```
+
+### Ruby/Rails
+```bash
 rtk bin/rails db:migrate
-rtk bin/rails db:seed
-rtk bin/rails routes
 rtk bin/rails test
-rtk bin/rails console
-rtk bin/rails server
-rtk bin/rails runner "load 'path/to/script.rb'"
+rtk bin/rails routes
 rtk bundle install
 rtk bundle exec rspec
 rtk bundle exec rake
-rtk bundle exec rails runner "SomeTask.run"
-
-# npm / Node
-rtk npm install
-rtk npm run dev
-rtk npm run build
-rtk npm test
-rtk npx <command>
-rtk yarn install
-rtk yarn dev
-rtk yarn build
-
-# Python
-rtk python manage.py migrate
-rtk python manage.py runserver
-rtk python manage.py test
-rtk pip install -r requirements.txt
-rtk pytest
-rtk python -m venv .venv
-rtk uv pip install -r requirements.txt
-
-# Other
-rtk cargo build
-rtk docker ps
-rtk kubectl get pods
 ```
 
-**No exceptions.** Not "just a quick git status." Not "it's only one command." Every. Single. One.
+### Go (75-90% savings)
+```bash
+rtk go test              # NDJSON parser (90%)
+rtk go build             # Errors only (80%)
+rtk go vet               # Issues only (75%)
+rtk golangci-lint run    # JSON grouped by rule (85%)
+```
 
-## What RTK Does
+### Rust (80-90% savings)
+```bash
+rtk cargo build          # Errors only (80%)
+rtk cargo test           # Failures only (90%)
+rtk cargo clippy         # Warnings grouped (80%)
+```
 
-RTK (Rust Token Killer) compresses CLI output by 60-90%, stripping noise like:
-- File-by-file diff stats from git merge
-- Package update banners (refine, npm, yarn)
-- Verbose build output
-- Rails deprecation warnings, Sentry init logs, autoload notices, full stack traces
-- Ruby/Rails runner verbose output, seed file logging
-- Docker/kubectl table formatting bloat
-- ANSI color codes and decorative borders
+### Containers (80% savings)
+```bash
+rtk docker ps
+rtk docker images
+rtk docker logs <container>   # Deduplicated
+rtk docker compose ps
+rtk kubectl pods
+rtk kubectl logs <pod>        # Deduplicated
+rtk kubectl services
+```
 
-Without RTK, a single `git merge` can dump 50+ lines. With RTK: 2-3 lines.
+### Utilities
+```bash
+rtk log app.log          # Deduplicated logs
+rtk curl <url>           # Auto-detect JSON + schema
+rtk env -f AWS           # Filtered env vars
+rtk deps                 # Dependencies summary
+rtk summary <command>    # Heuristic summary
+rtk proxy <command>      # Raw passthrough (for debugging)
+```
 
 ## Never Chain Commands
 
 ```bash
-# NEVER do this:
-git checkout main && git branch -D feature && git checkout -b feature && git merge other --no-edit && npm run dev &
+# NEVER:
+git checkout main && git merge feature && npm test
 
-# ALWAYS do this — one command per tool call:
+# ALWAYS — one per call:
 rtk git checkout main
-# (check output, then next)
-rtk git branch -D feature
-# (check output, then next)
-rtk git checkout -b feature
-# (check output, then next)
-rtk git merge other --no-edit
-# (check output — if CONFLICT, stop and handle it)
+# check output
+rtk git merge feature --no-edit
+# check output
+rtk npm test
 ```
 
-**Why:** Chained commands hide failures. A merge conflict mid-chain doesn't stop `&&` — the rest keeps running, wasting tokens on output from a broken state. One command per call lets you react to each result.
+**Why:** Chained commands hide failures. A merge conflict mid-chain wastes tokens on broken state.
 
-## Allowed Compound Commands
-
-Only these patterns are acceptable:
+## Never Pipe RTK Output
 
 ```bash
-# Short, safe, read-only pipes:
-rtk git log --oneline -1
+# NEVER:
+rtk git log | head -5       # Pipe defeats rtk compression
+rtk npm test 2>&1 | tail    # RTK already strips noise
 
-# Environment setup + single command:
-PORT=3002 rtk npm run dev
-
-# Kill + restart (idempotent):
-kill $(lsof -ti:3002) 2>/dev/null; rtk npm run dev
+# ALWAYS:
+rtk git log --oneline -5    # Use flags, not pipes
+rtk npm test                # RTK handles compression
 ```
 
-## Suppress Noise at Source
+## Suppress Dev Server Noise
 
 ```bash
-# Dev servers: background + discard stdout
 PORT=3002 rtk npm run dev > /dev/null 2>&1 &
-
-# Then check health separately:
-sleep 5 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3002
-
-# Git: use quiet flags when you don't need output
-rtk git checkout main -q
-rtk git merge feature/xyz --no-edit -q
+sleep 3 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3002
 ```
 
-## Stop on Conflict or Error
+## Failed Command Recovery
 
-If any command returns an error or conflict:
+RTK saves full unfiltered output on failure to `~/.local/share/rtk/tee/`. Read the file instead of re-running.
 
-1. **STOP** — do not run the next command
-2. **Read the error** — understand what happened
-3. **Fix it** — resolve the conflict or error
-4. **Then continue** — only after the fix is confirmed
+## Analytics
 
-Never power through errors hoping the chain will work out.
+```bash
+rtk gain              # Token savings summary
+rtk gain --history    # Recent command history
+rtk discover          # Find missed savings opportunities
+```
 
-## Red Flags
+## Orchestrator Delegation Rule
 
-| Pattern | Problem | Fix |
-|---------|---------|-----|
-| `git status` (no rtk) | No compression | `rtk git status` |
-| `cmd1 && cmd2 && cmd3 && cmd4` | Hidden failures, token waste | One per call |
-| `npm run dev 2>&1` without redirect | Dev server dumps entire stdout | `> /dev/null 2>&1 &` |
-| Continuing after `CONFLICT` | Broken state, wasted work | Stop and resolve |
-| `git merge` without `-q` | Full file list dumped | Add `-q` or use `rtk` |
-| `bin/rails db:migrate` (no rtk) | Deprecation warnings, init logs flood output | `rtk bin/rails db:migrate` |
-| `bundle exec rails runner ... 2>&1 \| tail` | Still dumps full stack traces | `rtk bundle exec rails runner ...` |
-| `rtk <cmd> 2>&1 \| head -20` or `\| tail -20` | Pipe defeats rtk compression — rtk already strips noise | `rtk <cmd>` (no pipes) |
-| Any `rails` or `bundle exec` without rtk | Verbose Ruby output wastes tokens | Always prefix with `rtk` |
-| `python manage.py migrate` (no rtk) | Verbose migration output | `rtk python manage.py migrate` |
-| `pip install` (no rtk) | Package download noise | `rtk pip install -r requirements.txt` |
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "It's faster to chain them" | It's faster until one fails mid-chain and you debug for 10 minutes |
-| "RTK is just for git" | RTK compresses npm, yarn, cargo, docker, kubectl, Rails, and more |
-| "This command is too simple for rtk" | Simple commands still produce verbose output. Always use rtk. |
-| "I'll check the output after" | You can't un-burn tokens. Compress first. |
-
-## Integration with Orchestrator
-
-When the orchestrator delegates to any agent, include in the briefing:
-
-> "Always prefix CLI commands with `rtk` (e.g., `rtk git status`, `rtk npm test`). Never chain more than 2 commands. Stop immediately on any error or conflict."
+Include in every agent briefing:
+> "Prefix ALL CLI commands with `rtk`. One command per call. Stop on error."

@@ -7,8 +7,6 @@ description: Use when a feature has multiple PRs or spans multiple repos (fronte
 
 Coordinate multi-PR and multi-repo features through a staging branch for regression testing before production merge.
 
-**Announce at start:** "I'm using the staging-integration skill to coordinate staging testing."
-
 ## When to Use
 
 **Multi-PR features (same repo):**
@@ -74,13 +72,14 @@ When a feature is split into multiple PRs within the same repository:
 All PRs passed code review (@oracle approved)
   ↓
 @fixer creates staging branch from main:
-  git checkout main && git pull
-  git checkout -b staging/[feature-name]
+  rtk git checkout main
+  rtk git pull
+  rtk git checkout -b staging/[feature-name]
   ↓
 @fixer merges each PR branch into staging:
-  git merge [pr-branch-1] --no-ff
-  git merge [pr-branch-2] --no-ff
-  git merge [pr-branch-3] --no-ff
+  rtk git merge [pr-branch-1] --no-ff
+  rtk git merge [pr-branch-2] --no-ff
+  rtk git merge [pr-branch-3] --no-ff
   ↓
 Merge conflicts?
   ├─ YES → @fixer resolves, @oracle reviews resolution
@@ -91,11 +90,11 @@ Merge conflicts?
   ↓
 Tests pass?
   ├─ NO → @fixer investigates integration issues
-  │         Switch to the relevant feature branch: git checkout [feature-branch]
+  │         Switch to the relevant feature branch: rtk git checkout [feature-branch]
   │         Fix the issue on the feature branch (NEVER fix on staging)
   │         Commit and push the feature branch
-  │         Switch back to staging: git checkout staging/[feature-name]
-  │         Re-merge: git merge [feature-branch] --no-ff
+  │         Switch back to staging: rtk git checkout staging/[feature-name]
+  │         Re-merge: rtk git merge [feature-branch] --no-ff
   │         Re-run tests
   └─ YES ↓
   ↓
@@ -145,10 +144,11 @@ All PRs in all repos passed code review (@oracle approved)
 For EACH repo involved:
   @fixer creates staging branch:
     cd [repo]
-    git checkout main && git pull
-    git checkout -b staging/[feature-name]
-    git merge [pr-branch] --no-ff
-    git push -u origin staging/[feature-name]
+    rtk git checkout main
+    rtk git pull
+    rtk git checkout -b staging/[feature-name]
+    rtk git merge [pr-branch] --no-ff
+    rtk git push -u origin staging/[feature-name]
   ↓
 All staging branches created?
   ├─ NO → Finish remaining repos

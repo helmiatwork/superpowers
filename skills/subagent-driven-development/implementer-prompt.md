@@ -100,15 +100,12 @@ Task tool (general-purpose):
 
     ## Report Format
 
-    When done, report:
-    - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
-    - What you implemented (or what you attempted, if blocked)
-    - What you tested and test results
-    - Files changed
-    - Self-review findings (if any)
-    - Any issues or concerns
+    **Be minimal. No diffs. No file listings. No narration between tool calls.**
 
-    Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness.
-    Use BLOCKED if you cannot complete the task. Use NEEDS_CONTEXT if you need
-    information that wasn't provided. Never silently produce work you're unsure about.
+    When done, report ONLY:
+    - **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+    - **Tests:** pass/fail count (one line)
+    - **Concerns:** only if DONE_WITH_CONCERNS or BLOCKED (brief)
+
+    Do NOT list files changed, show diffs, describe what you did, or summarize edits. The orchestrator sees the diffs in the IDE.
 ```
