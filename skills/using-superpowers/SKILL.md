@@ -13,17 +13,36 @@ Before taking ANY action — even before reading the user's message:
 
 **The orchestrator MUST delegate the boot sequence to @fixer.** Boot is mechanical work (redis-cli commands + formatting) — Haiku handles it perfectly at 19x cheaper than Opus.
 
-**Orchestrator runs ONE command — no agent dispatch needed:**
+**Two-step boot:**
 
+**Step 1: Run `ai-boot` for summary checklist (print to user)**
 ```bash
 ai-boot
 ```
+This script outputs a ready-to-print summary. Orchestrator prints verbatim — zero thinking.
 
-This script (at `/Users/ichigo/.local/bin/ai-boot`) reads all Redis keys, parses JSON, and outputs the ready-to-print checklist. It uses STRLEN for large keys (no content loading) and only reads small keys in full.
+**Step 2: Load full content of global keys into orchestrator memory (DO NOT PRINT)**
+```bash
+redis-cli GET ai:strategy
+redis-cli GET ai:execution-protocol
+redis-cli GET ai:workflow-guide
+redis-cli GET ai:agent-config
+redis-cli GET ai:templates:index
+```
+The orchestrator MUST read the full content of these 5 keys. These contain the rules, conventions, tech stack, delegation protocol, and review workflow that the orchestrator needs to write correct delegation briefings. Read them silently — do NOT print the content to the user.
 
-**Orchestrator prints the output verbatim — zero thinking, zero token waste.**
+**What goes into orchestrator memory vs what's just a summary:**
 
-The `ai-boot` script costs ~0 orchestrator tokens (just one Bash call). The output is ~50 lines of text (~200 tokens to display).
+| Key | Orchestrator reads FULL content | Why |
+|---|---|---|
+| ai:strategy | **YES** — read silently | Coding conventions, tech stack, branching rules, quality standards |
+| ai:execution-protocol | **YES** — read silently | Phase checklists, STOP gates, anti-freelancing rules |
+| ai:workflow-guide | **YES** — already loaded via skill | Delegation, review loop, Redis handoff |
+| ai:agent-config | **YES** — read silently | Agent models, skills, MCPs for delegation |
+| ai:templates:index | **YES** — read silently | Template IDs for new project phases |
+| ai:knowledge:{project} | **SUMMARY only** (from ai-boot) | Doc counts, rules, features — load specific docs on demand |
+| ai:state:{project} | **SUMMARY only** (from ai-boot) | Last session, next action — enough for context |
+| ai:tasks:{project} | **SUMMARY only** (from ai-boot) | Feature/subtask progress — load detail when working on a task |
 
 **Then print this checklist to the user:**
 
