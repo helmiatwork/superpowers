@@ -22,7 +22,8 @@ Run these checks and **print the checklist to the user** before doing anything e
 5. redis-cli GET ai:workflow-guide → orchestrator delegation + review workflow
 6. Detect project: PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
 7. redis-cli GET ai:state:$PROJECT → last session state for this project
-8. Check Outline for Project Tracker (if active project)
+8. redis-cli GET ai:tasks:$PROJECT → task board with per-agent checklists
+9. Check Outline for Project Tracker (if active project)
 ```
 
 **How to detect project name:** Run `basename $(git rev-parse --show-toplevel)` to get the repo name (e.g., `oms`, `customer-portal`, `ichigo-admin`). This is the Redis key suffix.
@@ -47,12 +48,12 @@ Session Boot:
   Project:                ✅ [project-name]
   Last session:           ✅ [date] — [what was done] or ⬜ first session
   Next action:            ✅ [specific next step] or ⬜ none
+  Task board:             ✅ X tasks (Y done, Z in-progress, W pending) or ⬜ none
+    #N agent:             ✅ done / 🔄 step X/Y (step name) / ⬜ pending / ❌ blocked
   Agent history:
     fixer:                [last action summary or —]
     oracle:               [last action summary or —]
     designer:             [last action summary or —]
-    explorer:             [last action summary or —]
-    librarian:            [last action summary or —]
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
 Agents:
@@ -306,52 +307,172 @@ When design is approved, create TRDs BEFORE delegating to @fixer:
 
 **Codemap-First Rule:** Every folder has `CODEMAP.md`. Read it before exploring. Never glob all files when a codemap exists. No codemap? Check Outline, then run `cartography`.
 
-## STATE PERSISTENCE - ON COMPLETION
+## TASK BOARD — CRASH-PROOF STATE IN REDIS
 
-**Before ending ANY session, the orchestrator MUST do both:**
+### How It Works
 
-### 1. Save to Redis (instant, local)
+The orchestrator maintains a **task board** in Redis at `ai:tasks:{project}`. This is the real-time state of all agent work. If the session crashes (internet, power, computer), the next session reads the task board and resumes at the exact step that was interrupted.
 
-Detect project name and save state:
-```bash
-PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
-redis-cli SET "ai:state:$PROJECT" '<json>'
+### Lifecycle
+
+```
+Orchestrator plans work
+  ↓
+Creates task board in Redis (ai:tasks:{project})
+  → Each task has: agent, goal, status, files, checklist
+  ↓
+Before dispatching agent:
+  → Set task status: "in-progress"
+  → Save to Redis
+  ↓
+Agent works, orchestrator updates checklist after each step:
+  → "Read CODEMAP" ✅
+  → "Write tests" ✅
+  → "Implement" ✅    ← session crashes here
+  → "Build passes" ⬜
+  → "Commit" ⬜
+  → "Oracle review" ⬜
+  ↓
+Next session boots:
+  → Reads ai:tasks:{project}
+  → Sees task 2 is "in-progress", checklist shows 3/6 done
+  → Resumes at "Build passes"
 ```
 
-**State JSON structure:**
+### Task Board Structure
+
+```bash
+PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
+redis-cli SET "ai:tasks:$PROJECT" '<json>'
+```
+
+```json
+{
+  "sprint": "Sprint 2",
+  "updated": "2026-03-19T14:30:00Z",
+  "tasks": [
+    {
+      "id": 1,
+      "agent": "fixer",
+      "goal": "Implement POST /v1/orders",
+      "status": "done",
+      "files": ["src/controllers/orders_controller.rb"],
+      "checklist": [
+        {"step": "Read CODEMAP.md", "done": true},
+        {"step": "Read TRD section", "done": true},
+        {"step": "Write tests", "done": true},
+        {"step": "Implement", "done": true},
+        {"step": "Build + lint + tests pass", "done": true},
+        {"step": "Commit", "done": true},
+        {"step": "Oracle review", "done": true, "result": "APPROVED"}
+      ]
+    },
+    {
+      "id": 2,
+      "agent": "fixer",
+      "goal": "Implement PATCH /v1/orders/:id",
+      "status": "in-progress",
+      "files": ["src/controllers/orders_controller.rb"],
+      "checklist": [
+        {"step": "Read CODEMAP.md", "done": true},
+        {"step": "Read TRD section", "done": true},
+        {"step": "Write tests", "done": false},
+        {"step": "Implement", "done": false},
+        {"step": "Build + lint + tests pass", "done": false},
+        {"step": "Commit", "done": false},
+        {"step": "Oracle review", "done": false}
+      ]
+    }
+  ]
+}
+```
+
+### Task Statuses
+
+| Status | Meaning |
+|---|---|
+| `pending` | Not started yet |
+| `in-progress` | Agent is working (or was working when session crashed) |
+| `done` | Completed + reviewed by @oracle |
+| `blocked` | Agent couldn't complete — needs intervention |
+| `review` | @fixer done, waiting for @oracle review |
+
+### Orchestrator Rules
+
+**Before dispatching any agent:**
+1. Read `ai:tasks:{project}` from Redis
+2. Find the next `pending` task (or resume `in-progress` task)
+3. Update task status to `in-progress` + save to Redis
+4. Dispatch agent with full briefing
+
+**After agent reports back (each step):**
+1. Update the checklist item to `done: true`
+2. Save to Redis immediately — **don't batch updates**
+3. If agent reports BLOCKED, set task status to `blocked` + save
+
+**After @oracle review:**
+1. If APPROVED: set task status to `done`, save result in checklist
+2. If ISSUES: set status back to `in-progress`, dispatch @fixer to fix, then re-review
+
+**On session crash recovery:**
+1. Read `ai:tasks:{project}`
+2. Find task with status `in-progress`
+3. Read its checklist — find first `done: false` step
+4. Resume from that step (re-dispatch agent if needed)
+
+### Boot Checklist (shows task board)
+
+```
+  Task board:             ✅ 5 tasks (3 done, 1 in-progress, 1 pending)
+    #1 fixer:             ✅ POST /v1/orders — done (oracle: APPROVED)
+    #2 fixer:             🔄 PATCH /v1/orders/:id — step 3/7 (Write tests)
+    #3 designer:          ⬜ Bulk actions toolbar mockup — pending
+    #4 fixer:             ⬜ DELETE /v1/orders/:id — pending
+    #5 oracle:            ⬜ Final review — pending
+```
+
+## STATE PERSISTENCE - ON COMPLETION
+
+**Before ending ANY session, the orchestrator MUST save ALL state:**
+
+### 1. Update Task Board in Redis
+
+```bash
+redis-cli SET "ai:tasks:$PROJECT" '<updated task board JSON>'
+```
+Every checklist item that completed this session must be marked `done: true`. Any in-progress task stays `in-progress` with the checklist showing exactly where it stopped.
+
+### 2. Update Project State in Redis
+
+```bash
+redis-cli SET "ai:state:$PROJECT" '<updated state JSON>'
+```
+
+**State JSON:**
 ```json
 {
   "phase": "Sprint 2",
   "task": "implementing order API",
   "last_session": "2026-03-19",
-  "next_action": "Implement PATCH /v1/orders/:id per API TRD. GET and POST done.",
+  "next_action": "Resume task #2: PATCH /v1/orders/:id — continue from 'Write tests' step",
   "decisions": ["Using Sidekiq for async", "PostgreSQL jsonb for metadata"],
   "blockers": "none",
   "agents": {
-    "fixer": "Completed GET/POST endpoints + tests. 3/5 tasks done. Remaining: PATCH, DELETE.",
-    "oracle": "Reviewed GET/POST — APPROVED. Flagged: add rate limiting before launch.",
-    "designer": "N/A this session",
-    "explorer": "Mapped api/v1/ structure. Found 8 controllers, 3 shared concerns.",
-    "librarian": "Updated API TRD with GET/POST response examples."
+    "fixer": "Completed task #1 (POST). Task #2 in progress — CODEMAP + TRD read, tests next.",
+    "oracle": "Reviewed task #1 — APPROVED. Flagged: add rate limiting.",
+    "explorer": "Mapped api/v1/ structure.",
+    "librarian": "Updated API TRD."
   }
 }
 ```
 
-**Rules:**
-- `next_action` must be specific enough for a fresh AI to resume instantly
-- `agents` section: one line per agent summarizing what they did (or "N/A this session")
-- Only include agents that were active — skip inactive ones
+### 3. Update Project Tracker in Outline
 
-**Bad next_action:** "Continue working on orders"
-**Good next_action:** "Implement PATCH /v1/orders/:id per API TRD section Orders. GET and POST done and tested."
+Delegate to @librarian: update the Project Tracker document with session log entry.
 
-### 2. Update Project Tracker in Outline
+### 4. Feature complete?
 
-Delegate to @librarian: update the Project Tracker document with session log entry, current status, and next action.
-
-### 3. Feature complete?
-
-If yes: @fixer creates PR → @oracle reviews → staging-integration if multi-PR → @librarian updates Outline checklist
+If yes: @fixer creates PR → @oracle reviews → staging-integration if multi-PR → @librarian updates Outline
 
 ## BRANCHING RULES — NON-NEGOTIABLE
 
