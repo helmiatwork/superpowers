@@ -162,12 +162,89 @@ Omit rules that don't apply (e.g., skip TDD rule for @librarian writing docs, sk
 
 9. **ONLY IF NO SPECIALIST** - Handle it yourself (this should almost never happen)
 
-> **Agent config:** `/Users/ichigo/.config/opencode/oh-my-opencode-slim.json` (EXACT path — never guess)
-> **Provider/MCP config:** `/Users/ichigo/.config/opencode/opencode.json`
+## AFTER DELEGATION — ORCHESTRATOR RESPONSIBILITIES
 
-**Specialists:** @explorer (discovery), @librarian (docs/TRDs), @oracle (strategy/review), @designer (UI/UX), @fixer (implementation)
+### Verify Agent Output (Don't Trust Blindly)
 
-**Rules:** If overhead < time saved → DELEGATE. Bad delegation = no context.
+When an agent reports DONE:
+
+1. **Check the claim** — run `rtk git diff --stat` to see what actually changed
+2. **Verify tests** — if agent says "tests pass", run `rtk npm test` yourself to confirm
+3. **Check scope** — did agent stay within BOUNDARIES? Any files touched that weren't in the briefing?
+4. **If suspicious** — dispatch @oracle to review the changes before proceeding
+
+**Never accept "DONE" without evidence. Trust but verify.**
+
+### Handle Agent Failure
+
+When an agent reports BLOCKED or fails:
+
+```
+Agent reports BLOCKED
+  ↓
+What kind of blocker?
+  ├─ Missing context → Provide more context, re-dispatch SAME agent
+  ├─ Task too complex for model → Re-dispatch on stronger model:
+  │     Haiku failed → retry on Sonnet
+  │     Sonnet failed → retry on Opus
+  │     Opus failed → break task into smaller pieces
+  ├─ External dependency issue → Fix dependency, then re-dispatch
+  ├─ Conflicting requirements → Escalate to user for decision
+  └─ Agent went off-track → Write clearer briefing, re-dispatch fresh agent
+```
+
+**Never retry the same agent with the same prompt.** Something must change: more context, stronger model, or smaller scope.
+
+### Knowledge Passing Between Agents
+
+When chaining agents (e.g., @explorer → @fixer), pass results explicitly:
+
+```
+Step 1: @explorer finds relevant files
+  → Orchestrator receives: [list of file paths + descriptions]
+
+Step 2: Orchestrator includes explorer's findings in fixer's briefing:
+  GOAL: Implement feature X
+  FILES:
+  - Read first: [paths from explorer]
+  - Modify: [subset of paths]
+  CONTEXT:
+  - Explorer found: [summary of what explorer discovered]
+```
+
+**Never make @fixer re-discover what @explorer already found.** The orchestrator is the memory between agents.
+
+### Parallel Agent Safety
+
+When dispatching multiple agents simultaneously:
+
+| Rule | Why |
+|---|---|
+| Never dispatch 2 agents to the same file | They'll overwrite each other |
+| Split by domain: backend vs frontend vs tests | No file overlap |
+| If tasks depend on each other → run sequentially | Output of task 1 feeds task 2 |
+| After parallel agents complete → verify no conflicts | `rtk git diff` before committing |
+
+### Review Loop (Mandatory for Features)
+
+After @fixer completes a feature (not a trivial fix):
+
+```
+@fixer reports DONE
+  ↓
+Orchestrator dispatches @oracle:
+  GOAL: Review changes from @fixer
+  CONTEXT: [what was implemented, which TRD/PRD it satisfies]
+  FILES: [files changed — from git diff --stat]
+  REFERENCE: [relevant TRD section for spec compliance]
+  ↓
+@oracle reports:
+  ├─ APPROVED → proceed to PR/merge
+  ├─ ISSUES FOUND → dispatch @fixer with specific fixes
+  └─ ARCHITECTURE CONCERN → discuss with user before proceeding
+```
+
+**Skip review only for:** typo fixes, config changes, single-line edits with no logic change.
 
 ## PROMPT REFINEMENT GATE
 
@@ -196,7 +273,7 @@ When design is approved, create TRDs BEFORE delegating to @fixer:
 3. **Model selection** — Haiku for mechanical, Sonnet for moderate, Opus for complex.
 4. **Scope control** — Specify exact files. Read codemaps first, never scan entire directories.
 5. **Context management** — Fresh sessions for new tasks. Supermemory for continuity.
-6. **Redis caching** — AI Strategy, Execution Protocol, and templates index cached in Redis (`ai:strategy`, `ai:execution-protocol`, `ai:templates:index`). 7-day TTL. Always read Redis first (~1ms), fallback to Outline (~500ms).
+6. **Redis caching** — AI Strategy, Execution Protocol, templates index, and agent config cached in Redis. No TTL (persists forever). Always read Redis first (~1ms), fallback to Outline (~500ms).
 7. **Supermemory caching** — Check supermemory before dispatching research. Target >60% cache hits.
 8. **Batch processing** — Parallel agent dispatch for independent tasks.
 
