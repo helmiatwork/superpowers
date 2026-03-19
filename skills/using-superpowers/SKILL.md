@@ -21,9 +21,8 @@ redis-cli ping  # if not PONG → brew services start redis
 PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
 
 # 2. Load ALL keys — read full content
-redis-cli GET ai:strategy
+# ai:strategy — NOT loaded (covered by ai:knowledge + superpowers skills)
 # ai:execution-protocol — load ON DEMAND when starting a new project phase
-# redis-cli GET ai:execution-protocol
 redis-cli GET ai:templates:index
 redis-cli GET ai:agent-config
 # NOTE: ai:workflow-guide is NOT loaded here — it's already loaded as this skill via [*]
@@ -47,7 +46,7 @@ redis-cli KEYS "ai:feature:*"  # then GET each feature key found
 ```
 Session Boot:
   Redis:                  ✅ running
-  ai:strategy:            ✅ loaded (XX,XXX chars, ~X,XXX tokens)
+  ai:strategy:            ✅ covered by ai:knowledge + skills
   ai:execution-protocol:  ⏸️ on-demand (new project phases only)
   ai:templates:index:     ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
