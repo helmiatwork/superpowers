@@ -117,5 +117,6 @@ If nothing exists → generate before proceeding.
 | `ai:execution-protocol` | AI Project Execution Protocol | 7 days |
 | `ai:templates:index` | Project Templates collection index | no TTL |
 | `ai:agent-config` | Agent models, skills, MCPs config | no TTL |
+| `ai:workflow-guide` | Orchestrator delegation + review workflow | no TTL |
 
 To refresh manually: fetch from Outline → `redis-cli SET <key> "<content>" EX 604800`
