@@ -9,37 +9,21 @@ description: Use when starting any conversation - establishes how to find and us
 
 Before taking ANY action — even before reading the user's message:
 
-### Boot Sequence (VISIBLE TO USER — MANDATORY)
+### Boot Sequence (DELEGATE TO @fixer — SAVE TOKENS)
 
-Run these checks and **print the checklist to the user** before doing anything else. This is the FIRST output of every session — no exceptions.
+**The orchestrator MUST delegate the boot sequence to @fixer.** Boot is mechanical work (redis-cli commands + formatting) — Haiku handles it perfectly at 19x cheaper than Opus.
 
-```
-0. redis-cli ping → if not PONG → brew services start redis
-1. redis-cli GET ai:strategy → load or fetch from Outline if empty
-2. redis-cli GET ai:execution-protocol → load or fetch from Outline if empty
-3. redis-cli GET ai:templates:index → load or fetch from Outline if empty
-4. redis-cli GET ai:agent-config → agent models, skills, MCPs
-5. redis-cli GET ai:workflow-guide → orchestrator delegation + review workflow
-6. Detect project: PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
-7. redis-cli GET ai:state:$PROJECT → last session state for this project
-8. redis-cli GET ai:tasks:$PROJECT → task board with per-agent checklists
-9. redis-cli KEYS ai:feature:* → check if this project is part of a cross-repo feature
-10. Check Outline for Project Tracker (if active project)
-```
+**Orchestrator runs ONE command — no agent dispatch needed:**
 
-**How to detect project name:** Run `basename $(git rev-parse --show-toplevel)` to get the repo name (e.g., `oms`, `customer-portal`, `ichigo-admin`). This is the Redis key suffix.
-
-**After all checks, load state from Redis:**
 ```bash
-redis-cli GET ai:agent-config
-redis-cli GET ai:state:$PROJECT
-redis-cli GET ai:tasks:$PROJECT
-# Check if this project is part of a cross-repo feature:
-for key in $(redis-cli KEYS "ai:feature:*"); do
-  if redis-cli GET "$key" | grep -q "$PROJECT"; then echo "$key"; fi
-done
+ai-boot
 ```
-**Parse the JSON and print the checklist below.**
+
+This script (at `/Users/ichigo/.local/bin/ai-boot`) reads all Redis keys, parses JSON, and outputs the ready-to-print checklist. It uses STRLEN for large keys (no content loading) and only reads small keys in full.
+
+**Orchestrator prints the output verbatim — zero thinking, zero token waste.**
+
+The `ai-boot` script costs ~0 orchestrator tokens (just one Bash call). The output is ~50 lines of text (~200 tokens to display).
 
 **Then print this checklist to the user:**
 
@@ -52,6 +36,14 @@ Session Boot:
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:workflow-guide:      ✅ loaded (X,XXX chars, ~X,XXX tokens)
   Project:                ✅ [project-name]
+  Knowledge:              ✅ loaded (X,XXX chars)
+    Docs:                 [N] required (loaded), [N] reference (on-demand)
+    Business rules:       [N] rules loaded
+    API gotchas:          [N] gotchas loaded
+    Data model:           [N] relationships, [N] key fields
+    Known issues:         [N] issues loaded
+    Features:             [N] features ([N] in-progress, [N] planned)
+    UI patterns:          ✅ loaded
   Last session:           ✅ [date] — [what was done] or ⬜ first session
   Next action:            ✅ [specific next step] or ⬜ none
   Task board:             ✅ X tasks (Y done, Z in-progress, W pending) or ⬜ none
@@ -90,6 +82,83 @@ Use ✅ for loaded, ⚠️ for fetched from fallback (Outline), ❌ for missing/
 
 Only after the checklist is printed and all items are ✅ or ⚠️, proceed to:
 
+## PROJECT KNOWLEDGE — LOAD BEFORE ANY WORK
+
+After reading `ai:knowledge:{project}`, the orchestrator MUST:
+
+1. **Load all `required` docs from Outline** — fetch each doc by ID, read in full. These are TRDs, API specs, architecture docs that the AI MUST understand before touching code.
+2. **Note `reference` docs** — don't load now, but know they exist. Load on-demand when a task touches that area.
+3. **Check `features` section** — know which features exist, their status, and which TRD/API sections cover them.
+4. **When delegating to agents**, include relevant knowledge:
+   - Working on `creators` feature? → include TRD section "Creators" + API section "Creator endpoints" in the briefing
+   - Working on `curated-lists`? → include TRD section "Curated Lists" + API section "CuratedList endpoints"
+   - **Never let agents work without the relevant TRD/API section in their briefing**
+
+### Knowledge Structure
+
+```json
+{
+  "project": "ichigo-admin",
+  "description": "Internal admin panel for Ichigo platform",
+  "stack": "React 18 + Refine v4 + Mantine v5 + Apollo Client",
+  "api": "GraphQL, auth via X-Auth-Token (JWT)",
+  "outline_collection": "dc175c88",
+
+  "docs": {
+    "required": [{"id": "...", "title": "TRD", "type": "trd", "load": "full"}],
+    "reference": [{"id": "...", "title": "PR Plan", "type": "plan", "load": "on-demand"}]
+  },
+  "business_rules": ["Curated lists: Draft → Sourcing → Ready → Complete", "..."],
+  "api_gotchas": ["Auth in X-Auth-Token, NOT Authorization Bearer", "..."],
+  "data_model": {
+    "key_relationships": ["Brand has_many Campaigns, CuratedLists", "..."],
+    "important_fields": ["Creator.status: active/inactive/blacklisted", "..."]
+  },
+  "environment": {"api_url": "REACT_APP_CP_API_URL", "auth_token": "REACT_APP_CP_API_TOKEN"},
+  "known_issues": ["Mantine v5 only — NOT v7", "Apollo cache can serve stale data after mutations"],
+  "external_services": [{"name": "Customer Portal API", "url": "localhost:3007"}],
+  "ui_patterns": {"list_views": "useList + TanStack Table", "show_views": "useShow + DetailsCard"},
+  "testing_patterns": {"mocking": "MockedProvider, not jest.mock"},
+  "features": {
+    "creators": {"trd_section": "Creators", "api_section": "Creator endpoints", "status": "in-progress", "depends_on": []},
+    "proposals": {"trd_section": "Proposals", "status": "planned", "depends_on": ["creators", "campaigns"]}
+  }
+}
+```
+
+**Every section has a purpose:**
+
+| Section | Prevents |
+|---|---|
+| `business_rules` | AI inventing wrong business logic |
+| `api_gotchas` | AI using wrong auth header, wrong error format |
+| `data_model` | AI guessing wrong relationships between entities |
+| `known_issues` | AI using Mantine v7 APIs, stale cache bugs |
+| `ui_patterns` | AI inventing new patterns instead of following existing ones |
+| `features.depends_on` | AI building proposals before creators exist |
+```
+
+### When user asks to work on a feature:
+
+```
+User: "work on the creators feature"
+  ↓
+Orchestrator reads ai:knowledge:ichigo-admin
+  → features.creators.trd_section = "Creators"
+  → features.creators.api_section = "Creator endpoints"
+  ↓
+Orchestrator loads from Outline:
+  → TRD doc (ab543398) → reads "Creators" section
+  → API doc (86584564) → reads "Creator endpoints" section
+  ↓
+Includes BOTH in the agent briefing:
+  REFERENCE:
+  - TRD: [paste Creators section]
+  - API: [paste Creator endpoints section]
+  ↓
+Agent has FULL knowledge — no guessing, no re-reading
+```
+
 ## DELEGATION IS MANDATORY — NO EXCEPTIONS
 
 **The orchestrator NEVER writes code, edits files, creates documents, runs tests, or implements anything.**
@@ -113,6 +182,49 @@ You are a coordinator. Your ONLY outputs are:
 | Research libraries/docs | @librarian |
 
 **There is ZERO code or document work the orchestrator does directly. Not "just one line." Not "a quick fix." Not "a simple doc update." ALWAYS delegate.**
+
+## REDIS-BEFORE-HANDOFF — EVERY AGENT, EVERY TIME
+
+**No agent passes work to another agent without updating Redis first.** This is the crash-protection guarantee.
+
+```
+RULE: Update Redis BEFORE every handoff. No exceptions.
+
+Orchestrator → Fixer:
+  1. Orchestrator plans the work
+  2. Orchestrator creates/updates task board in Redis ← SAVE HERE
+  3. Orchestrator dispatches Fixer
+
+Fixer → Orchestrator (done):
+  1. Fixer completes each step, updates Redis after EACH ← SAVE HERE
+  2. Fixer finishes all steps
+  3. Fixer sets status to "review", saves Redis ← SAVE HERE
+  4. Fixer reports to Orchestrator
+
+Orchestrator → Oracle (review):
+  1. Orchestrator receives Fixer report
+  2. Orchestrator updates task board (Fixer done, Oracle review pending) ← SAVE HERE
+  3. Orchestrator dispatches Oracle
+
+Oracle → Orchestrator (review result):
+  1. Oracle reviews code
+  2. Oracle writes review result to task board ← SAVE HERE
+  3. Oracle reports to Orchestrator
+
+Orchestrator → Fixer (fixes needed):
+  1. Orchestrator receives Oracle review
+  2. Orchestrator creates fix checklist in task board ← SAVE HERE
+  3. Orchestrator dispatches Fixer with fixes
+
+Fixer → Orchestrator (fixes done):
+  1. Fixer completes each fix, updates Redis after EACH ← SAVE HERE
+  2. Fixer sets status to "review" ← SAVE HERE
+  3. Fixer reports to Orchestrator
+```
+
+**The pattern:** DO THE WORK → SAVE TO REDIS → THEN HAND OFF.
+
+**Never:** Do the work → hand off → forget to save. If session crashes between "hand off" and "save", the work is lost.
 
 6. **ASSESS** — Is there a relevant specialist? (Answer: YES. There always is.)
 7. **PRESENT EXECUTIVE SUMMARY** - Before dispatching agents:
@@ -184,6 +296,7 @@ RULES — follow these exactly:
 9. Prefix ALL CLI commands with rtk (e.g., rtk npm test, rtk git status).
 10. Zero text output — only tool calls. No narration, no summaries, no diffs.
 11. Report: Status (DONE/BLOCKED) + test count only. Nothing else.
+12. **UPDATE REDIS BEFORE EVERY HANDOFF AND AFTER EVERY STEP.** Run: redis-cli SET "ai:tasks:$PROJECT" '<updated json>'. Save BEFORE reporting to orchestrator. Save AFTER each completed step. This is NON-NEGOTIABLE — if session crashes between steps or during handoff, the next session must know exactly where you stopped.
 ```
 
 Omit rules that don't apply (e.g., skip TDD rule for @librarian writing docs, skip UI states for @explorer).
@@ -378,7 +491,7 @@ Orchestrator dispatches @oracle to review
 Loop ends. Next task begins.
 ```
 
-### Task Board Structure
+### Task Board Structure (Three Levels: Feature → Sub-task → Steps)
 
 ```bash
 PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
@@ -387,65 +500,90 @@ redis-cli SET "ai:tasks:$PROJECT" '<json>'
 
 ```json
 {
-  "sprint": "Sprint 2",
   "updated": "2026-03-19T14:30:00Z",
-  "tasks": [
+  "features": [
     {
       "id": 1,
-      "agent": "fixer",
-      "goal": "Implement order management",
-      "status": "done",
-      "checklist": [
-        {"step": "Update database schema — add orders table", "done": true},
-        {"step": "Update API — POST /v1/orders endpoint", "done": true},
-        {"step": "Update UI — OrderForm component", "done": true},
-        {"step": "Add submit button with loading state", "done": true},
-        {"step": "Write tests", "done": true},
-        {"step": "Build + lint passes", "done": true}
-      ],
-      "review": {
-        "agent": "oracle",
-        "status": "APPROVED",
-        "fixes": []
-      }
+      "name": "Authentication",
+      "status": "in-progress",
+      "subtasks": [
+        {
+          "id": "1a",
+          "goal": "Login — Controller + Model",
+          "agent": "fixer",
+          "status": "done",
+          "checklist": [
+            {"step": "Read CODEMAP.md", "done": true},
+            {"step": "Create User model + migration", "done": true},
+            {"step": "Create AuthController with login action", "done": true},
+            {"step": "Write tests", "done": true},
+            {"step": "Build + lint passes", "done": true}
+          ],
+          "review": {"agent": "oracle", "status": "APPROVED", "fixes": []}
+        },
+        {
+          "id": "1b",
+          "goal": "Login — UI Form",
+          "agent": "designer",
+          "status": "in-progress",
+          "checklist": [
+            {"step": "Read existing UI patterns from ai:knowledge", "done": true},
+            {"step": "Create LoginForm component", "done": false},
+            {"step": "Connect to auth API", "done": false},
+            {"step": "Handle error states (wrong password, locked)", "done": false},
+            {"step": "Build + lint passes", "done": false}
+          ],
+          "review": null
+        },
+        {
+          "id": "1c",
+          "goal": "Login — E2E Tests",
+          "agent": "fixer",
+          "status": "pending",
+          "depends_on": ["1a", "1b"],
+          "checklist": [],
+          "review": null
+        }
+      ]
     },
     {
       "id": 2,
-      "agent": "fixer",
-      "goal": "Add order editing",
-      "status": "in-progress",
-      "checklist": [
-        {"step": "Read CODEMAP.md for orders/", "done": true},
-        {"step": "Update API — PATCH /v1/orders/:id", "done": true},
-        {"step": "Update UI — EditOrder component", "done": false},
-        {"step": "Add cancel/save buttons", "done": false},
-        {"step": "Write tests", "done": false},
-        {"step": "Build + lint passes", "done": false}
-      ],
-      "review": null
-    },
-    {
-      "id": 3,
-      "agent": "fixer",
-      "goal": "Fix bugs from oracle review",
-      "status": "fix-needed",
-      "checklist": [
-        {"step": "Fix: add error boundary on OrderForm", "done": false},
-        {"step": "Fix: handle 409 conflict on duplicate order", "done": false},
-        {"step": "Rerun tests after fixes", "done": false}
-      ],
-      "review": {
-        "agent": "oracle",
-        "status": "ISSUES",
-        "fixes": [
-          "Missing error boundary — OrderForm crashes on API failure",
-          "No handling for 409 conflict when order already exists"
-        ]
-      }
+      "name": "Registration",
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": "2a",
+          "goal": "Registration — Controller + Model",
+          "agent": "fixer",
+          "status": "pending",
+          "checklist": [],
+          "review": null
+        },
+        {
+          "id": "2b",
+          "goal": "Registration — UI Form",
+          "agent": "designer",
+          "status": "pending",
+          "depends_on": ["2a"],
+          "checklist": [],
+          "review": null
+        }
+      ]
     }
   ]
 }
 ```
+
+**Three levels:**
+- **Feature** (Authentication) — the big unit, tracks overall status
+- **Sub-task** (Login Controller, Login UI) — one agent owns each, has its own checklist
+- **Steps** (Create model, Write tests) — agent-level work, updated after each completion
+
+**Feature status** is derived from sub-tasks:
+- All sub-tasks `done` → feature `done`
+- Any sub-task `in-progress` → feature `in-progress`
+- All sub-tasks `pending` → feature `pending`
+- Any sub-task `blocked` → feature `blocked`
 
 ### Task Statuses
 
@@ -453,68 +591,81 @@ redis-cli SET "ai:tasks:$PROJECT" '<json>'
 |---|---|
 | `pending` | Not started — agent hasn't created checklist yet |
 | `in-progress` | Agent is working through its checklist |
-| `review` | Agent finished checklist, waiting for @oracle |
+| `review` | Agent finished, waiting for @oracle review |
 | `fix-needed` | @oracle found issues — fix checklist created |
-| `done` | @oracle APPROVED — task complete |
-| `blocked` | Agent can't proceed — needs user/orchestrator help |
+| `done` | @oracle APPROVED — sub-task complete |
+| `blocked` | Agent can't proceed — needs help |
+
+### Sub-task Dependencies
+
+Sub-tasks can have `depends_on` — a list of sub-task IDs that must be `done` before this one starts:
+
+```json
+{"id": "1c", "goal": "E2E Tests", "depends_on": ["1a", "1b"], "status": "pending"}
+```
+
+The orchestrator checks dependencies before dispatching. If `1a` or `1b` isn't done, `1c` stays `pending`.
 
 ### Agent Rules (included in every delegation)
 
 **When dispatched, EVERY agent MUST:**
 
-1. **Read the task board first:** `redis-cli GET ai:tasks:{project}`
-2. **If resuming (status: in-progress):** Find first `done: false` step, continue from there
-3. **If new task (status: pending):** Analyze the goal, create your own checklist of concrete steps, save to Redis, set status to `in-progress`
-4. **After completing EACH step:** Update that step to `done: true`, save to Redis immediately
-5. **When all steps done:** Set status to `review`, report to orchestrator
-6. **If fix-needed:** Read the review.fixes list, create fix checklist, work through it, set status to `review` when done
+1. **Read the task board:** `redis-cli GET ai:tasks:{project}`
+2. **Find your sub-task** by ID (e.g., `1b`)
+3. **If resuming (in-progress):** Find first `done: false` step, continue from there
+4. **If new (pending):** Create your checklist of concrete steps, save to Redis, set status to `in-progress`
+5. **After EACH step:** Update to `done: true`, save to Redis IMMEDIATELY — no batching
+6. **When all steps done:** Set status to `review`
+7. **If fix-needed:** Read review.fixes, create fix steps, work through them
 
 **Include this in every agent briefing:**
 ```
 TASK BOARD: redis-cli GET ai:tasks:{project}
-YOUR TASK: #{id} — {goal}
+YOUR SUB-TASK: #{id} — {goal}
+FEATURE: {feature name}
 RULES:
-- Read the task board first
-- Create your own checklist of steps before starting
-- Save checklist to Redis: redis-cli SET ai:tasks:{project} '<updated json>'
-- After EACH step: update that step to done, save to Redis
+- Read the task board first — find your sub-task by ID
+- Create your own checklist of concrete steps before starting
+- Save to Redis BEFORE starting: redis-cli SET ai:tasks:{project} '<json>'
+- ⚠️ AFTER EVERY STEP: update done:true, save to Redis IMMEDIATELY
+  → No batching. No waiting. Crash protection.
 - When all done: set status to "review"
+- If fix-needed: read review.fixes, create fix steps, work through them
 ```
 
 ### The Review Loop
 
 ```
-@fixer finishes → status: "review"
+Agent finishes sub-task → status: "review"
   ↓
 Orchestrator dispatches @oracle:
-  "Review task #{id}. Read the checklist and changed files.
-   Check: spec compliance, error handling, test coverage, patterns."
+  "Review sub-task #{id} of feature {name}.
+   Check: spec compliance, error handling, tests, patterns."
   ↓
-@oracle reviews → creates review result:
+@oracle reviews:
   ├─ APPROVED → status: "done" ✅
+  │   → Check: are all sub-tasks for this feature done?
+  │   → Yes: feature status → "done"
+  │   → No: dispatch next pending sub-task
   └─ ISSUES → creates fix list in review.fixes[]
-               → new task with status: "fix-needed"
-               → orchestrator dispatches @fixer with fix checklist
-                 ↓
-               @fixer reads fixes → works through them → status: "review"
-                 ↓
-               @oracle re-reviews → APPROVED or more fixes
-                 ↓
-               Loop until APPROVED
+               → status: "fix-needed"
+               → orchestrator dispatches same agent with fixes
+               → agent works through fix steps → status: "review"
+               → @oracle re-reviews → loop until APPROVED
 ```
 
-**The loop is mandatory. No task is "done" without @oracle APPROVED.**
-
-### Boot Checklist (shows task board)
+### Boot Checklist (summary by default)
 
 ```
-  Task board:             ✅ 5 tasks (2 done, 1 in-progress, 1 fix-needed, 1 pending)
-    #1 fixer:             ✅ Order management — done (oracle: APPROVED)
-    #2 fixer:             🔄 Order editing — step 3/6 (Update UI)
-    #3 fixer:             🔧 Fix bugs from review — 0/3 fixes done
-    #4 designer:          ⬜ Order list redesign — pending
-    #5 fixer:             ⬜ Delete order — pending
+  Task board:             ✅ 2 features (1 in-progress, 1 pending)
+    1. Authentication:    🔄 in-progress (1/3 sub-tasks done)
+       1a. fixer:         ✅ Controller + Model (5/5 — APPROVED)
+       1b. designer:      🔄 UI Form — step 2/5 (Create LoginForm)
+       1c. fixer:         ⬜ E2E Tests — waiting on 1a, 1b
+    2. Registration:      ⬜ pending (0/2 sub-tasks)
 ```
+
+Only expand the `in-progress` feature by default. Show pending features as one-line summaries.
 
 ## CROSS-REPO FEATURES
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Rebuild all AI Redis keys from source of truth
-# Priority: Outline → local backup (superpowers/redis-backup/) → fail
+# Priority: Repo (superpowers/redis-backup/) → Outline (fallback) → fail
 # Run after: redis flush, new machine, or just to refresh
 
 set -e
@@ -9,69 +9,51 @@ BACKUP_DIR="$HOME/.config/opencode/superpowers/redis-backup"
 
 echo "🔄 Rebuilding AI Redis keys..."
 
-load_from_outline_or_backup() {
+load_key() {
   local redis_key=$1
-  local outline_id=$2
-  local backup_file=$3
+  local backup_file=$2
+  local outline_id=$3
 
-  content=$(python3 -c "
+  if [ -f "$BACKUP_DIR/$backup_file" ] && [ -s "$BACKUP_DIR/$backup_file" ]; then
+    redis-cli SET "$redis_key" "$(cat "$BACKUP_DIR/$backup_file")" > /dev/null
+    echo "  ✅ $redis_key ($(redis-cli STRLEN "$redis_key") bytes) — from repo"
+  elif [ -n "$outline_id" ]; then
+    content=$(python3 -c "
 import json, urllib.request
 req = urllib.request.Request('http://localhost:3000/api/documents.info',
     json.dumps({'id': '$outline_id'}).encode(),
     headers={'Authorization': 'Bearer ol_api_L7Xvu9kYtSNqdamjbLSORrJ2kdOQhdvCHZlW6H', 'Content-Type': 'application/json'})
 print(json.loads(urllib.request.urlopen(req).read())['data']['text'])
 " 2>/dev/null) || content=""
-
-  if [ -n "$content" ]; then
-    redis-cli SET "$redis_key" "$content" > /dev/null
-    echo "  ✅ $redis_key ($(redis-cli STRLEN "$redis_key") bytes) — from Outline"
-  elif [ -f "$BACKUP_DIR/$backup_file" ]; then
-    redis-cli SET "$redis_key" "$(cat "$BACKUP_DIR/$backup_file")" > /dev/null
-    echo "  ⚠️  $redis_key ($(redis-cli STRLEN "$redis_key") bytes) — from local backup"
+    if [ -n "$content" ]; then
+      redis-cli SET "$redis_key" "$content" > /dev/null
+      echo "  ⚠️  $redis_key ($(redis-cli STRLEN "$redis_key") bytes) — from Outline (repo file missing)"
+    else
+      echo "  ❌ $redis_key — FAILED (no repo file, no Outline)"
+    fi
   else
-    echo "  ❌ $redis_key — FAILED (no Outline, no backup)"
+    echo "  ❌ $redis_key — FAILED (no repo file, no Outline fallback)"
   fi
 }
 
-# 1. From Outline (fallback to backup)
-load_from_outline_or_backup "ai:strategy" "5a830d18-ffdf-4368-80c0-aff2a035a224" "ai-strategy.md"
-load_from_outline_or_backup "ai:execution-protocol" "2149642d-1da4-4f18-b259-548586cf0733" "ai-execution-protocol.md"
+# 1. From repo (fallback to Outline)
+load_key "ai:strategy" "ai-strategy.md" "5a830d18-ffdf-4368-80c0-aff2a035a224"
+load_key "ai:execution-protocol" "ai-execution-protocol.md" "2149642d-1da4-4f18-b259-548586cf0733"
+load_key "ai:templates:index" "ai-templates-index.md" ""
 
-# 2. Templates index
-content=$(python3 -c "
-import json, urllib.request
-req = urllib.request.Request('http://localhost:3000/api/collections.documents',
-    json.dumps({'id': 'd8923b12-4e5c-45c3-b656-383055a46df5'}).encode(),
-    headers={'Authorization': 'Bearer ol_api_L7Xvu9kYtSNqdamjbLSORrJ2kdOQhdvCHZlW6H', 'Content-Type': 'application/json'})
-docs = json.loads(urllib.request.urlopen(req).read())['data']
-print('Project Templates Collection (Outline ID: d8923b12-4e5c-45c3-b656-383055a46df5)')
-print()
-print('Documents:')
-for d in sorted(docs, key=lambda x: x['title']):
-    print(f\"- {d['title']} ({d['id'][:8]})\")" 2>/dev/null) || content=""
-
-if [ -n "$content" ]; then
-  redis-cli SET "ai:templates:index" "$content" > /dev/null
-  echo "  ✅ ai:templates:index ($(redis-cli STRLEN ai:templates:index) bytes) — from Outline"
-elif [ -f "$BACKUP_DIR/ai-templates-index.md" ]; then
-  redis-cli SET "ai:templates:index" "$(cat "$BACKUP_DIR/ai-templates-index.md")" > /dev/null
-  echo "  ⚠️  ai:templates:index ($(redis-cli STRLEN ai:templates:index) bytes) — from backup"
-else
-  echo "  ❌ ai:templates:index — FAILED"
-fi
-
-# 3. From local files
+# 2. From local files (always available)
 redis-cli SET ai:agent-config "$(cat ~/.config/opencode/oh-my-opencode-slim.json)" > /dev/null
-echo "  ✅ ai:agent-config ($(redis-cli STRLEN ai:agent-config) bytes)"
+echo "  ✅ ai:agent-config ($(redis-cli STRLEN ai:agent-config) bytes) — from config file"
 
 redis-cli SET ai:workflow-guide "$(cat ~/.config/opencode/superpowers/skills/using-superpowers/SKILL.md)" > /dev/null
-echo "  ✅ ai:workflow-guide ($(redis-cli STRLEN ai:workflow-guide) bytes)"
+echo "  ✅ ai:workflow-guide ($(redis-cli STRLEN ai:workflow-guide) bytes) — from skill file"
 
-# 4. Session state
+# 3. Session state
 echo ""
-echo "  ⚠️  ai:state:* / ai:tasks:* / ai:feature:* are session-specific — recreated on next session"
+echo "  ⚠️  ai:state:* / ai:tasks:* / ai:feature:* / ai:knowledge:* are session-specific."
+echo "  They will be recreated on next AI session start."
 
-# 5. Summary
+# 4. Summary
 echo ""
 echo "📊 Redis keys:"
 redis-cli KEYS "ai:*" | sort | while read key; do
@@ -79,3 +61,5 @@ redis-cli KEYS "ai:*" | sort | while read key; do
 done
 echo ""
 echo "✅ Done"
+echo "Source of truth: superpowers/redis-backup/ (GitHub)"
+echo "Fallback: Outline (if repo files missing)"
