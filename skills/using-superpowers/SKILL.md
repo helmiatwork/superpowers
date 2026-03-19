@@ -164,16 +164,36 @@ Omit rules that don't apply (e.g., skip TDD rule for @librarian writing docs, sk
 
 ## AFTER DELEGATION — ORCHESTRATOR RESPONSIBILITIES
 
-### Verify Agent Output (Don't Trust Blindly)
+### Verify Agent Output (MANDATORY — every time)
 
-When an agent reports DONE:
+When ANY agent (@fixer, @designer, @librarian) reports DONE:
 
-1. **Check the claim** — run `rtk git diff --stat` to see what actually changed
-2. **Verify tests** — if agent says "tests pass", run `rtk npm test` yourself to confirm
-3. **Check scope** — did agent stay within BOUNDARIES? Any files touched that weren't in the briefing?
-4. **If suspicious** — dispatch @oracle to review the changes before proceeding
+```
+@fixer/designer/librarian reports DONE
+  ↓
+Step 1: Orchestrator verifies (quick check)
+  - rtk git diff --stat → what files actually changed?
+  - rtk npm test (or rtk cargo test, etc.) → tests actually pass?
+  - Files touched match the BOUNDARIES in briefing?
+  ↓
+Step 2: Dispatch @oracle to review (MANDATORY)
+  GOAL: Review changes from @fixer for correctness and spec compliance
+  FILES: [files from git diff --stat]
+  REFERENCE: [TRD/PRD section this task implements]
+  CHECK:
+    - Does the code match the spec/TRD exactly?
+    - Any bugs, edge cases missed, or security issues?
+    - Does it follow existing codebase patterns?
+    - Are tests adequate (not just happy path)?
+  ↓
+@oracle reports:
+  ├─ APPROVED → proceed to commit/PR
+  ├─ ISSUES → dispatch @fixer with oracle's specific feedback to fix
+  │            then re-dispatch @oracle to verify the fix
+  └─ BLOCKED → escalate to user
+```
 
-**Never accept "DONE" without evidence. Trust but verify.**
+**This is not optional. Every task gets reviewed by @oracle before it's considered done.** The only exception: orchestrator's own quick checks (redis-cli, git status) that don't produce code.
 
 ### Handle Agent Failure
 
@@ -225,26 +245,19 @@ When dispatching multiple agents simultaneously:
 | If tasks depend on each other → run sequentially | Output of task 1 feeds task 2 |
 | After parallel agents complete → verify no conflicts | `rtk git diff` before committing |
 
-### Review Loop (Mandatory for Features)
-
-After @fixer completes a feature (not a trivial fix):
+### Complete Task Lifecycle
 
 ```
-@fixer reports DONE
-  ↓
-Orchestrator dispatches @oracle:
-  GOAL: Review changes from @fixer
-  CONTEXT: [what was implemented, which TRD/PRD it satisfies]
-  FILES: [files changed — from git diff --stat]
-  REFERENCE: [relevant TRD section for spec compliance]
-  ↓
-@oracle reports:
-  ├─ APPROVED → proceed to PR/merge
-  ├─ ISSUES FOUND → dispatch @fixer with specific fixes
-  └─ ARCHITECTURE CONCERN → discuss with user before proceeding
+User request
+  → Orchestrator builds briefing (GOAL/CONTEXT/FILES/REFERENCE/BOUNDARIES/RULES)
+  → @fixer implements
+  → Orchestrator verifies (git diff, tests)
+  → @oracle reviews (spec compliance, bugs, patterns)
+  → Issues? → @fixer fixes → @oracle re-reviews
+  → APPROVED → commit → update Project Tracker
 ```
 
-**Skip review only for:** typo fixes, config changes, single-line edits with no logic change.
+**No task is done until @oracle says APPROVED.** This is the quality gate.
 
 ## PROMPT REFINEMENT GATE
 
