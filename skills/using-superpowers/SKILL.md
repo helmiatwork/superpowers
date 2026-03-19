@@ -39,7 +39,6 @@ Session Boot:
   ai:templates:index:     ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:workflow-guide:      ✅ loaded (X,XXX chars, ~X,XXX tokens)
-  Supermemory:            ✅ last session: [summary or "no prior state"]
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
 Agents:
