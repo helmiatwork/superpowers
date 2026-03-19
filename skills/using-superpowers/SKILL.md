@@ -23,15 +23,21 @@ Run these checks and **print the checklist to the user** before doing anything e
 6. Detect project: PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
 7. redis-cli GET ai:state:$PROJECT → last session state for this project
 8. redis-cli GET ai:tasks:$PROJECT → task board with per-agent checklists
-9. Check Outline for Project Tracker (if active project)
+9. redis-cli KEYS ai:feature:* → check if this project is part of a cross-repo feature
+10. Check Outline for Project Tracker (if active project)
 ```
 
 **How to detect project name:** Run `basename $(git rev-parse --show-toplevel)` to get the repo name (e.g., `oms`, `customer-portal`, `ichigo-admin`). This is the Redis key suffix.
 
-**After all checks, load agent config from Redis:**
+**After all checks, load state from Redis:**
 ```bash
 redis-cli GET ai:agent-config
 redis-cli GET ai:state:$PROJECT
+redis-cli GET ai:tasks:$PROJECT
+# Check if this project is part of a cross-repo feature:
+for key in $(redis-cli KEYS "ai:feature:*"); do
+  if redis-cli GET "$key" | grep -q "$PROJECT"; then echo "$key"; fi
+done
 ```
 **Parse the JSON and print the checklist below.**
 
@@ -50,6 +56,7 @@ Session Boot:
   Next action:            ✅ [specific next step] or ⬜ none
   Task board:             ✅ X tasks (Y done, Z in-progress, W pending) or ⬜ none
     #N agent:             ✅ done / 🔄 step X/Y (step name) / ⬜ pending / ❌ blocked
+  Cross-repo feature:    ✅ [feature-name] — this repo: [status], depends on: [repos] or ⬜ none
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
 Agents:
@@ -509,6 +516,78 @@ Orchestrator dispatches @oracle:
     #5 fixer:             ⬜ Delete order — pending
 ```
 
+## CROSS-REPO FEATURES
+
+When a feature spans multiple repos (e.g., API in OMS + UI in ichigo-admin + checkout in customer-portal):
+
+### Create a Feature Key
+
+```bash
+redis-cli SET "ai:feature:{feature-name}" '<json>'
+```
+
+```json
+{
+  "name": "Payment Integration",
+  "status": "in-progress",
+  "created": "2026-03-19",
+  "updated": "2026-03-19",
+  "repos": {
+    "oms":              {"branch": "feature/payment-integration", "status": "in-progress", "pr": null, "summary": "API endpoints. 3/5 done."},
+    "ichigo-admin":     {"branch": "feature/payment-integration", "status": "pending",     "pr": null, "summary": "Admin UI. Waiting for OMS API."},
+    "customer-portal":  {"branch": "feature/payment-integration", "status": "pending",     "pr": null, "summary": "Checkout flow. Waiting for OMS API."}
+  },
+  "dependency_order": ["oms", "ichigo-admin", "customer-portal"],
+  "merge_order": ["oms", "ichigo-admin", "customer-portal"],
+  "integration_tested": false,
+  "decisions": ["OMS owns payment logic", "Stripe webhooks for async"]
+}
+```
+
+### Rules
+
+| Rule | Why |
+|---|---|
+| Work repos in `dependency_order` | Don't start UI until API is done |
+| Same branch name across repos | Easy to track |
+| Each repo has its own `ai:tasks:{project}` and `ai:state:{project}` | Per-repo state stays independent |
+| Feature key tracks the big picture | Which repos are done, which are waiting |
+| Merge in `merge_order` | Backend before frontend, shared libs first |
+| Integration test after ALL repos done | Use `staging-integration` skill |
+
+### Cross-Repo Flow
+
+```
+Orchestrator reads ai:feature:{name}
+  ↓
+Find first repo in dependency_order with status != "done"
+  ↓
+Switch to that repo (or tell user to open it)
+  ↓
+Work using normal ai:tasks:{project} flow
+  ↓
+When repo is done:
+  → Update ai:feature:{name} → repo status: "done", pr: "#123"
+  → Move to next repo in dependency_order
+  ↓
+All repos done?
+  → Integration test across repos (staging-integration skill)
+  → Update ai:feature:{name} → integration_tested: true
+  → Merge in merge_order
+```
+
+### Boot Checklist (cross-repo)
+
+When a cross-repo feature is detected:
+```
+  Cross-repo feature:    ✅ Payment Integration
+    oms:                 🔄 in-progress (3/5 tasks) — branch: feature/payment-integration
+    ichigo-admin:        ⬜ pending — waiting for oms API
+    customer-portal:     ⬜ pending — waiting for oms API
+    Integration tested:  ⬜ not yet
+    Merge order:         oms → ichigo-admin → customer-portal
+```
+
 ## STATE PERSISTENCE - ON COMPLETION
 
 **Before ending ANY session, the orchestrator MUST save ALL state:**
@@ -546,13 +625,22 @@ redis-cli SET "ai:state:$PROJECT" '<updated state JSON>'
 }
 ```
 
-### 3. Update Project Tracker in Outline
+### 3. Update Cross-Repo Feature (if applicable)
+
+If this project is part of a cross-repo feature:
+```bash
+redis-cli SET "ai:feature:{feature-name}" '<updated json with this repo status>'
+```
+
+### 4. Update Project Tracker in Outline
 
 Delegate to @librarian: update the Project Tracker document with session log entry.
 
-### 4. Feature complete?
+### 5. Feature complete?
 
-If yes: @fixer creates PR → @oracle reviews → staging-integration if multi-PR → @librarian updates Outline
+**Single-repo:** @fixer creates PR → @oracle reviews → merge
+
+**Cross-repo:** Update feature key → check if all repos done → if yes: staging-integration across all repos → merge in `merge_order`
 
 ## BRANCHING RULES — NON-NEGOTIABLE
 
