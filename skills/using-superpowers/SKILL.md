@@ -16,29 +16,42 @@ Before taking ANY action — even before reading the user's message:
 **Orchestrator dispatches @fixer with this briefing:**
 
 ```
-GOAL: Run session boot sequence and return formatted checklist.
-RULES: Run each command, collect results, return the formatted checklist. Zero narration.
+GOAL: Run session boot and return a ready-to-print checklist string.
 
-COMMANDS (run in order):
+STEP 1 — Check Redis:
   redis-cli ping
+  If not PONG → brew services start redis → wait → retry
+
+STEP 2 — Get sizes only (do NOT read full content):
+  redis-cli STRLEN ai:strategy
+  redis-cli STRLEN ai:execution-protocol
+  redis-cli STRLEN ai:templates:index
+  redis-cli STRLEN ai:agent-config
+  redis-cli STRLEN ai:workflow-guide
+
+STEP 3 — Get project state (read these in full — they are small):
   PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
-  redis-cli GET ai:strategy | wc -c
-  redis-cli GET ai:execution-protocol | wc -c
-  redis-cli GET ai:templates:index | wc -c
-  redis-cli GET ai:agent-config
-  redis-cli GET ai:workflow-guide | wc -c
   redis-cli GET ai:knowledge:$PROJECT
   redis-cli GET ai:state:$PROJECT
   redis-cli GET ai:tasks:$PROJECT
   redis-cli KEYS "ai:feature:*"
 
-If any Redis key is empty: report which key is missing.
-If Redis is not running: run "brew services start redis", wait, retry.
+STEP 4 — Build the checklist string and return it.
+  Use the sizes from step 2 and the JSON from step 3.
+  Estimate tokens as: chars / 4.
+  Parse ai:tasks JSON to count features/subtasks/statuses.
+  Parse ai:state JSON for last session + next action + agent history.
+  Parse ai:knowledge JSON for doc counts, rules, patterns.
+  Parse ai:agent-config JSON for agent table.
 
-OUTPUT FORMAT: Return ONLY the formatted checklist below, filled with real values. Nothing else.
+IMPORTANT:
+  - Do NOT read ai:strategy, ai:execution-protocol, or ai:workflow-guide content.
+    Only use STRLEN for sizes. These are large docs — reading them wastes tokens.
+  - Return ONLY the final formatted checklist string. Nothing else.
+  - The orchestrator will print your output VERBATIM — no processing.
 ```
 
-**@fixer returns the checklist, orchestrator prints it to user:**
+**@fixer returns the ready-to-print checklist. Orchestrator echoes it directly — zero thinking:**
 
 **Then print this checklist to the user:**
 
