@@ -19,8 +19,9 @@ Run these checks and **print the checklist to the user** before doing anything e
 2. redis-cli GET ai:execution-protocol → load or fetch from Outline if empty
 3. redis-cli GET ai:templates:index → load or fetch from Outline if empty
 4. redis-cli GET ai:agent-config → agent models, skills, MCPs
-5. Check supermemory for last session state
-6. Check Outline for Project Tracker (if active project)
+5. redis-cli GET ai:workflow-guide → orchestrator delegation + review workflow
+6. Check supermemory for last session state
+7. Check Outline for Project Tracker (if active project)
 ```
 
 **After all checks, load agent config from Redis:**
@@ -38,6 +39,7 @@ Session Boot:
   ai:execution-protocol:  ✅ loaded (XX,XXX chars, ~X,XXX tokens)
   ai:templates:index:     ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
+  ai:workflow-guide:      ✅ loaded (X,XXX chars, ~X,XXX tokens)
   Supermemory:            ✅ last session: [summary or "no prior state"]
   Project Tracker:        ✅ [phase X — current task] or ⬜ no active project
 
