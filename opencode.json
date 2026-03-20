@@ -1,0 +1,69 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "oh-my-opencode-slim",
+    "@different-ai/opencode-browser"
+  ],
+  "provider": {},
+  "agent": {
+    "explore": {
+      "disable": true
+    },
+    "general": {
+      "disable": true
+    }
+  },
+  "mcp": {
+    "supermemory": {
+      "type": "remote",
+      "url": "https://mcp.supermemory.ai/mcp",
+      "enabled": false,
+      "headers": {
+        "Authorization": "Bearer <SUPERMEMORY_TOKEN>"
+      }
+    },
+    "outline": {
+      "type": "local",
+      "command": [
+        "mcp-outline"
+      ],
+      "enabled": true,
+      "environment": {
+        "OUTLINE_API_KEY": "<OUTLINE_API_KEY>",
+        "OUTLINE_API_URL": "http://localhost:3000/api"
+      }
+    },
+    "asana": {
+      "type": "remote",
+      "url": "https://mcp.asana.com/v2/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer <ASANA_TOKEN>"
+      }
+    },
+    "atlassian": {
+      "type": "local",
+      "command": [
+        "uvx",
+        "mcp-atlassian"
+      ],
+      "enabled": true,
+      "environment": {
+        "JIRA_URL": "https://tokyotreat.atlassian.net",
+        "JIRA_USERNAME": "helmi@tokyotreat.com",
+        "JIRA_API_TOKEN": "<JIRA_API_TOKEN>",
+        "CONFLUENCE_URL": "https://api.atlassian.com/ex/confluence/db017fcb-081d-474f-8221-bd569a6eb64f",
+        "CONFLUENCE_USERNAME": "helmi@tokyotreat.com",
+        "CONFLUENCE_API_TOKEN": "<CONFLUENCE_API_TOKEN>"
+      }
+    }
+  },
+  "permission": {
+    "read": {
+      "~/.config/opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "~/.config/opencode/get-shit-done/*": "allow"
+    }
+  }
+}
