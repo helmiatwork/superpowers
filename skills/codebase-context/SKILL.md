@@ -118,8 +118,8 @@ If nothing exists → generate before proceeding.
 | `ai:templates:index` | Project Templates collection index | no TTL |
 | `ai:agent-config` | Agent models, skills, MCPs config | no TTL |
 | `ai:workflow-guide` | Orchestrator delegation + review workflow | no TTL |
-| `ai:state:{project}` | Last session state per project (e.g., `ai:state:oms`) | no TTL |
-| `ai:tasks:{project}` | Task board with per-agent checklists (e.g., `ai:tasks:oms`) | no TTL |
+| `ai:state:{project}:{branch}` | Last session state per branch (e.g., `ai:state:oms:main`) | no TTL |
+| `ai:tasks:{project}:{branch}` | Task board with per-agent checklists (e.g., `ai:tasks:oms:feature/auth`) | no TTL |
 | `ai:knowledge:{project}` | Project docs, TRDs, API specs, features (e.g., `ai:knowledge:oms`) | no TTL |
 | `ai:feature:{name}` | Cross-repo feature state (e.g., `ai:feature:payment-integration`) | no TTL |
 

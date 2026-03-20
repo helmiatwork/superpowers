@@ -17,8 +17,9 @@ Before taking ANY action — even before reading the user's message:
 # 0. Ensure Redis
 redis-cli ping  # if not PONG → brew services start redis
 
-# 1. Detect project
+# 1. Detect project + branch
 PROJECT=$(basename $(git rev-parse --show-toplevel 2>/dev/null || basename $(pwd)))
+BRANCH=$(git branch --show-current 2>/dev/null || echo "main")
 
 # 2. Load ALL keys — read full content
 # ai:strategy — NOT loaded (covered by ai:knowledge + superpowers skills)
@@ -27,8 +28,8 @@ redis-cli GET ai:templates:index
 redis-cli GET ai:agent-config
 # NOTE: ai:workflow-guide is NOT loaded here — it's already loaded as this skill via [*]
 redis-cli GET ai:knowledge:$PROJECT
-redis-cli GET ai:state:$PROJECT
-redis-cli GET ai:tasks:$PROJECT
+redis-cli GET ai:state:$PROJECT:$BRANCH
+redis-cli GET ai:tasks:$PROJECT:$BRANCH
 redis-cli KEYS "ai:feature:*"  # then GET each feature key found
 ```
 
@@ -51,7 +52,7 @@ Session Boot:
   ai:templates:index:     ✅ loaded (X,XXX chars, ~XXX tokens)
   ai:agent-config:        ✅ loaded (X,XXX chars, ~XXX tokens)
   workflow-guide:          ✅ loaded via skill [*]
-  Project:                ✅ [project-name]
+  Project:                ✅ [project-name] ([branch-name])
   Knowledge:              ✅ loaded (X,XXX chars, ~X,XXX tokens)
     Docs:                 [N] required (loaded), [N] reference (on-demand)
     Business rules:       [N] rules loaded
@@ -626,7 +627,7 @@ The orchestrator checks dependencies before dispatching. If `1a` or `1b` isn't d
 
 **When dispatched, EVERY agent MUST:**
 
-1. **Read the task board:** `redis-cli GET ai:tasks:{project}`
+1. **Read the task board:** `redis-cli GET ai:tasks:{project}:{branch}`
 2. **Find your sub-task** by ID (e.g., `1b`)
 3. **If resuming (in-progress):** Find first `done: false` step, continue from there
 4. **If new (pending):** Create your checklist of concrete steps, save to Redis, set status to `in-progress`
@@ -636,13 +637,13 @@ The orchestrator checks dependencies before dispatching. If `1a` or `1b` isn't d
 
 **Include this in every agent briefing:**
 ```
-TASK BOARD: redis-cli GET ai:tasks:{project}
+TASK BOARD: redis-cli GET ai:tasks:{project}:{branch}
 YOUR SUB-TASK: #{id} — {goal}
 FEATURE: {feature name}
 RULES:
 - Read the task board first — find your sub-task by ID
 - Create your own checklist of concrete steps before starting
-- Save to Redis BEFORE starting: redis-cli SET ai:tasks:{project} '<json>'
+- Save to Redis BEFORE starting: redis-cli SET ai:tasks:{project}:{branch} '<json>'
 - ⚠️ AFTER EVERY STEP: update done:true, save to Redis IMMEDIATELY
   → No batching. No waiting. Crash protection.
 - When all done: set status to "review"
@@ -762,14 +763,14 @@ When a cross-repo feature is detected:
 ### 1. Update Task Board in Redis
 
 ```bash
-redis-cli SET "ai:tasks:$PROJECT" '<updated task board JSON>'
+redis-cli SET "ai:tasks:$PROJECT:$BRANCH" '<updated task board JSON>'
 ```
 Every checklist item that completed this session must be marked `done: true`. Any in-progress task stays `in-progress` with the checklist showing exactly where it stopped.
 
 ### 2. Update Project State in Redis
 
 ```bash
-redis-cli SET "ai:state:$PROJECT" '<updated state JSON>'
+redis-cli SET "ai:state:$PROJECT:$BRANCH" '<updated state JSON>'
 ```
 
 **State JSON:**
